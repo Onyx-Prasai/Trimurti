@@ -19,14 +19,17 @@ from .models import (
     Transaction,
     StockAlert,
     DonationDrive,
+    BloodRequest,
+    SMSNotificationLog,
 )
 from .serializers import (
     DonorProfileSerializer, HospitalReqSerializer, BloodBankSerializer,
     DonationSerializer, StoreItemSerializer, RedemptionSerializer,
     HospitalSerializer, BloodStockSerializer, TransactionSerializer,
     IngestTransactionSerializer, StockAlertSerializer, DonationDriveSerializer,
-    PublicBloodStockSerializer,
+    PublicBloodStockSerializer, BloodRequestSerializer,
 )
+from .sms_service import send_blood_request_sms
 from .prediction import predict_blood_needs
 from django.conf import settings
 import os
@@ -91,6 +94,128 @@ class DonorProfileViewSet(viewsets.ModelViewSet):
             except HospitalReq.DoesNotExist:
                 pass
         
+        class BloodRequestViewSet(viewsets.ModelViewSet):
+            """ViewSet for managing blood requests and triggering SMS notifications"""
+            queryset = BloodRequest.objects.all().order_by('-created_at')
+            serializer_class = BloodRequestSerializer
+            permission_classes = [AllowAny]
+            filterset_fields = ['district', 'city', 'blood_type', 'urgency', 'status']
+            search_fields = ['hospital_name', 'location', 'contact_person']
+            ordering_fields = ['created_at', 'urgency', 'units_needed']
+            ordering = ['-created_at']
+    
+            def perform_create(self, serializer):
+                """
+                Override create to set created_by user and trigger SMS notifications
+                """
+                blood_request = serializer.save(created_by=self.request.user)
+                # Trigger SMS notifications to nearby donors
+                self.send_sms_notifications(blood_request)
+                return blood_request
+    
+            def send_sms_notifications(self, blood_request):
+                """
+                Find nearby donors with matching blood type and send SMS notifications
+                """
+                from .sms_service import send_bulk_blood_request_sms
+                from .models import DonorProfile, SMSNotificationLog
+        
+                # Find donors in the same district with matching blood type
+                nearby_donors = DonorProfile.objects.filter(
+                    district=blood_request.district,
+                    blood_group=blood_request.blood_type,
+                ).select_related('user')
+        
+                if not nearby_donors.exists():
+                    return
+        
+                # Prepare donor list with phone numbers
+                donor_data = []
+                for donor in nearby_donors:
+                    if donor.phone_number:
+                        donor_data.append({
+                            'phone_number': donor.phone_number,
+                            'user': donor.user,
+                        })
+        
+                if not donor_data:
+                    return
+        
+                # Send SMS notifications
+                result = send_bulk_blood_request_sms(
+                    donors=donor_data,
+                    blood_type=blood_request.blood_type,
+                    location=f"{blood_request.city}, {blood_request.district}",
+                    urgency=blood_request.urgency,
+                    blood_request=blood_request
+                )
+    
+            @action(detail=True, methods=['post'])
+            def mark_fulfilled(self, request, pk=None):
+                """Mark a blood request as fulfilled"""
+                blood_request = self.get_object()
+                blood_request.status = 'fulfilled'
+                blood_request.save()
+                serializer = self.get_serializer(blood_request)
+                return Response(serializer.data)
+    
+            @action(detail=True, methods=['post'])
+            def mark_cancelled(self, request, pk=None):
+                """Mark a blood request as cancelled"""
+                blood_request = self.get_object()
+                blood_request.status = 'cancelled'
+                blood_request.save()
+                serializer = self.get_serializer(blood_request)
+                return Response(serializer.data)
+    
+            @action(detail=False, methods=['get'])
+            def by_district(self, request):
+                """Get blood requests grouped by district"""
+                district = request.query_params.get('district')
+                if not district:
+                    return Response({'error': 'district parameter required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+                requests = BloodRequest.objects.filter(district=district, status='active')
+                serializer = self.get_serializer(requests, many=True)
+                return Response(serializer.data)
+    
+            @action(detail=False, methods=['get'])
+            def nearby(self, request):
+                """Get nearby blood requests for a specific location"""
+                district = request.query_params.get('district')
+                city = request.query_params.get('city')
+        
+                requests = BloodRequest.objects.filter(status='active')
+                if district:
+                    requests = requests.filter(district=district)
+                if city:
+                    requests = requests.filter(city=city)
+        
+                serializer = self.get_serializer(requests, many=True)
+                return Response(serializer.data)
+    
+            @action(detail=False, methods=['get'])
+            def stats(self, request):
+                """Get blood request statistics"""
+                total = BloodRequest.objects.count()
+                active = BloodRequest.objects.filter(status='active').count()
+                fulfilled = BloodRequest.objects.filter(status='fulfilled').count()
+        
+                # Count by blood type
+                from django.db.models import Count
+                by_blood_type = BloodRequest.objects.filter(status='active').values('blood_type').annotate(count=Count('id'))
+        
+                # Count by urgency
+                by_urgency = BloodRequest.objects.filter(status='active').values('urgency').annotate(count=Count('id'))
+        
+                return Response({
+                    'total': total,
+                    'active': active,
+                    'fulfilled': fulfilled,
+                    'cancelled': BloodRequest.objects.filter(status='cancelled').count(),
+                    'by_blood_type': list(by_blood_type),
+                    'by_urgency': list(by_urgency),
+                })
         donation = Donation.objects.create(
             donor=donor,
             hospital=hospital,
@@ -433,4 +558,72 @@ Please provide:
                 return Response({'error': error_message}, status=status.HTTP_401_UNAUTHORIZED)
             
             return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BloodRequestViewSet(viewsets.ModelViewSet):
+    """Manage blood requests and notify nearby donors via SMS."""
+
+    queryset = BloodRequest.objects.all().select_related('created_by')
+    serializer_class = BloodRequestSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        created_by = request.user if getattr(request, 'user', None) and request.user.is_authenticated else None
+        blood_request = serializer.save(created_by=created_by)
+
+        sms_summary = self._notify_matching_donors(blood_request)
+
+        response_data = BloodRequestSerializer(blood_request, context=self.get_serializer_context()).data
+        response_data['sms_summary'] = sms_summary
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def _notify_matching_donors(self, blood_request):
+        donors = DonorProfile.objects.filter(
+            blood_group=blood_request.blood_type,
+            district__iexact=blood_request.district,
+        ).exclude(phone__isnull=True).exclude(phone__exact='')
+
+        summary = {
+            'matched': donors.count(),
+            'sent': 0,
+            'failed': 0,
+        }
+
+        location_text = blood_request.location or f"{blood_request.city}, {blood_request.district}".strip(', ')
+        message_text = (
+            "URGENT BLOOD REQUEST\n\n"
+            f"Blood Type: {blood_request.blood_type}\n"
+            f"Location: {location_text}\n"
+            f"Urgency: {blood_request.urgency}\n\n"
+            "Your blood type matches! Please help save lives. Contact the hospital immediately.\n\n"
+            "Reply STOP to unsubscribe."
+        )
+
+        for donor in donors:
+            sent = send_blood_request_sms(
+                donor.phone,
+                blood_request.blood_type,
+                location_text,
+                blood_request.urgency,
+            )
+
+            SMSNotificationLog.objects.create(
+                blood_request=blood_request,
+                recipient=donor.user if donor.user_id else None,
+                phone_number=donor.phone,
+                message=message_text,
+                status='sent' if sent else 'failed',
+            )
+
+            if sent:
+                summary['sent'] += 1
+            else:
+                summary['failed'] += 1
+
+        return summary
 

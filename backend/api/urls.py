@@ -4,6 +4,7 @@ from .views import (
     DonorProfileViewSet, HospitalReqViewSet, BloodBankViewSet,
     DonationViewSet, StoreItemViewSet, RedemptionViewSet, AIHealthViewSet,
     HospitalViewSet, TransactionViewSet, TransactionIngestView, StockView,
+    BloodRequestViewSet,
 )
 from .reward_views import (
     MoneyRewardViewSet, DiscountRewardViewSet, DiscountRedemptionViewSet,
@@ -35,6 +36,7 @@ router.register(r'rewards/medicine-redemptions', MedicineRedemptionViewSet, base
 # BloodSync Nepal specific endpoints
 router.register(r'alerts', StockAlertViewSet, basename='alert')
 router.register(r'donation-drives', DonationDriveViewSet, basename='donation-drive')
+router.register(r'blood-requests', BloodRequestViewSet, basename='blood-request')
 
 urlpatterns = [
     path('', include(router.urls)),

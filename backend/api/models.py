@@ -583,3 +583,71 @@ class DonationDrive(models.Model):
             return 0
         return min(100, (self.collected_units / self.target_units) * 100)
 
+
+class BloodRequest(models.Model):
+    """Model for emergency blood requests"""
+    
+    URGENCY_CHOICES = [
+        ('Critical', 'Critical'),
+        ('High', 'High'),
+        ('Medium', 'Medium'),
+        ('Low', 'Low'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('fulfilled', 'Fulfilled'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    hospital_name = models.CharField(max_length=255)
+    district = models.CharField(max_length=100)
+    city = models.CharField(max_length=100)
+    location = models.TextField(help_text="Full location description")
+    blood_type = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES)
+    blood_product = models.CharField(max_length=20, choices=BLOOD_PRODUCT_CHOICES)
+    urgency = models.CharField(max_length=20, choices=URGENCY_CHOICES)
+    units_needed = models.IntegerField()
+    contact_number = models.CharField(max_length=20)
+    contact_person = models.CharField(max_length=255, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Blood Request'
+        verbose_name_plural = 'Blood Requests'
+    
+    def __str__(self):
+        return f"{self.hospital_name} - {self.blood_type} ({self.urgency})"
+
+
+class SMSNotificationLog(models.Model):
+    """Log of SMS notifications sent for blood requests"""
+    
+    STATUS_CHOICES = [
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+        ('read', 'Read'),
+    ]
+    
+    id = models.AutoField(primary_key=True)
+    blood_request = models.ForeignKey(BloodRequest, on_delete=models.CASCADE, related_name='sms_logs')
+    recipient = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    phone_number = models.CharField(max_length=20)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='sent')
+    sent_at = models.DateTimeField(auto_now_add=True)
+    twilio_sid = models.CharField(max_length=255, blank=True, null=True)
+    error_message = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-sent_at']
+        verbose_name = 'SMS Notification Log'
+        verbose_name_plural = 'SMS Notification Logs'
+    
+    def __str__(self):
+        return f"SMS to {self.phone_number} - {self.status}"
