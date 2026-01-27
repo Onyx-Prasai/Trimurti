@@ -1,7 +1,14 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     User,
@@ -11,11 +18,73 @@ from .models import (
 )
 from .serializers import (
     UserSerializer,
-    UserCreateSerializer,
+    UserRegisterSerializer,
+    UserLoginSerializer,
     HospitalProfileSerializer,
     BloodBankProfileSerializer,
     AdminProfileSerializer,
 )
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    """
+    API endpoint for user login
+    """
+    serializer = UserLoginSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+        
+        user = authenticate(username=username, password=password)
+        
+        if user is not None:
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({
+                'token': token.key,
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'detail': 'Invalid credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_view(request):
+    """
+    API endpoint for user registration
+    """
+    logger.debug(f"Registration request data: {request.data}")
+    serializer = UserRegisterSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        user = serializer.save()
+        token, created = Token.objects.get_or_create(user=user)
+        
+        # Create DonorProfile if user_type is base_user (donor)
+        if user.user_type == 'base_user':
+            from api.models import DonorProfile
+            DonorProfile.objects.get_or_create(
+                user=user,
+                defaults={'blood_group': 'O+'}
+            )
+        
+        return Response({
+            'token': token.key,
+            'user': UserSerializer(user).data,
+            'message': 'User registered successfully'
+        }, status=status.HTTP_201_CREATED)
+    
+    logger.error(f"Registration errors: {serializer.errors}")
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -27,11 +96,11 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'create':
-            return UserCreateSerializer
+            return UserRegisterSerializer
         return UserSerializer
 
     def get_permissions(self):
-        if self.action == 'create':
+        if self.action in ['create', 'register']:
             permission_classes = [AllowAny]
         else:
             permission_classes = [IsAuthenticated]
@@ -105,56 +174,3 @@ class AdminProfileViewSet(viewsets.ModelViewSet):
         return AdminProfile.objects.all()
 
 
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-from .models import User
-
-
-def login_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-
-        user = authenticate(request, username=username, password=password)
-
-        if user is not None:
-            login(request, user)
-            return redirect('/')  
-        else:
-            return render(request, 'auth/login.html', {
-                'error': 'Invalid username or password'
-            })
-
-    return render(request, 'users/login.html')
-
-
-def register_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        user_type = request.POST.get('user_type')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-
-        if password1 != password2:
-            return render(request, 'auth/registration.html', {
-                'error': 'Passwords do not match'
-            })
-
-        if User.objects.filter(username=username).exists():
-            return render(request, 'auth/registration.html', {
-                'error': 'Username already exists'
-            })
-
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password1,
-            user_type=user_type
-        )
-
-        login(request, user)
-        return redirect('login')
-
-    return render(request, 'users/registration.html')

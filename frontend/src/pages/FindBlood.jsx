@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FaSearch, FaPhone, FaMapMarkerAlt, FaExclamationCircle, FaChartLine, FaUniversity } from 'react-icons/fa'
+import { FaSearch, FaPhone, FaMapMarkerAlt, FaExclamationCircle, FaChartLine, FaUniversity, FaMap, FaList } from 'react-icons/fa'
 import { getHospitals, getBloodBanks, getBloodPredictions, getStock } from '../utils/api'
+import BloodMapView from '../components/BloodMapView'
 
 const FindBlood = () => {
   const [searchType, setSearchType] = useState('hospitals')
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'map'
   const [filters, setFilters] = useState({
     blood_type: '',
     blood_product: '',
@@ -261,7 +263,7 @@ const FindBlood = () => {
         </motion.div>
 
         {/* Search Type Toggle */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-6 space-x-4">
           <div className="bg-white rounded-2xl p-1 shadow-lg inline-flex">
             <button
               onClick={() => setSearchType('hospitals')}
@@ -282,6 +284,32 @@ const FindBlood = () => {
               }`}
             >
               Blood Banks
+            </button>
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="bg-white rounded-2xl p-1 shadow-lg inline-flex">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-6 py-2 rounded-xl transition-all flex items-center space-x-2 ${
+                viewMode === 'list'
+                  ? 'bg-primary text-white'
+                  : 'text-text hover:bg-gray-100'
+              }`}
+            >
+              <FaList />
+              <span>List View</span>
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-6 py-2 rounded-xl transition-all flex items-center space-x-2 ${
+                viewMode === 'map'
+                  ? 'bg-primary text-white'
+                  : 'text-text hover:bg-gray-100'
+              }`}
+            >
+              <FaMap />
+              <span>Map View</span>
             </button>
           </div>
         </div>
@@ -358,7 +386,22 @@ const FindBlood = () => {
           </div>
         </motion.div>
 
+        {/* Map View */}
+        {viewMode === 'map' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <BloodMapView 
+              bloodGroup={stockFilters.blood_group || filters.blood_type}
+              selectedCity={filters.city}
+            />
+          </motion.div>
+        )}
+
         {/* Results */}
+        {viewMode === 'list' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             {loading ? (
@@ -581,6 +624,7 @@ const FindBlood = () => {
             </div>
           )}
         </motion.div>
+        )}
       </div>
     </div>
   )

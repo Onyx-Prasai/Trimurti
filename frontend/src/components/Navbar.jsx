@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Logo from './Logo'
-import { FaHome, FaTint, FaChartLine, FaRobot, FaBell, FaGift, FaUser } from 'react-icons/fa'
+import { FaHome, FaTint, FaChartLine, FaRobot, FaBell, FaGift, FaUser, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa'
 
-const Navbar = () => {
+const Navbar = ({ isAuthenticated, setIsAuthenticated }) => {
   const location = useLocation()
 
-  const navItems = [
+  const authenticatedNavItems = [
     { path: '/', label: 'Home', icon: FaHome },
     { path: '/find-blood', label: 'Find Blood', icon: FaTint },
     { path: '/dashboard', label: 'Dashboard', icon: FaChartLine },
@@ -15,6 +15,19 @@ const Navbar = () => {
     { path: '/points', label: 'Points', icon: FaGift },
     { path: '/profile', label: 'Profile', icon: FaUser },
   ]
+
+  const publicNavItems = [
+    { path: '/', label: 'Home', icon: FaHome },
+  ]
+
+  const navItems = isAuthenticated ? authenticatedNavItems : publicNavItems
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setIsAuthenticated(false)
+    window.location.href = '/'
+  }
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
@@ -44,6 +57,44 @@ const Navbar = () => {
                 </Link>
               )
             })}
+          </div>
+
+          {/* Auth buttons */}
+          <div className="hidden md:flex space-x-2">
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-all"
+              >
+                <FaSignOutAlt />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all ${
+                    location.pathname === '/login'
+                      ? 'bg-primary text-white'
+                      : 'text-text hover:bg-gray-100'
+                  }`}
+                >
+                  <FaSignInAlt />
+                  <span>Login</span>
+                </Link>
+                <Link
+                  to="/register"
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all ${
+                    location.pathname === '/register'
+                      ? 'bg-primary text-white'
+                      : 'text-text hover:bg-gray-100'
+                  }`}
+                >
+                  <FaUser />
+                  <span>Register</span>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
