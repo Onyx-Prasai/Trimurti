@@ -146,8 +146,11 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+# Mistral AI API Key
+# Make sure to set the MISTRAL_API_KEY environment variable.
+# Example: export MISTRAL_API_KEY='your-real-api-key'
+MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY')
 
-# Gemini API Key
-# Optional in local dev; AI endpoints will respond with an error if missing
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+if not MISTRAL_API_KEY:
+    raise ValueError("MISTRAL_API_KEY environment variable not set. Please set it to your API key.")
 
