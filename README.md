@@ -1,17 +1,23 @@
 # Blood Hub Nepal
 
-A professional-grade, health-themed blood donation platform for Nepal. Built with React.js frontend and Django REST Framework backend, integrated with Google Gemini AI for health assistance.
+A professional-grade, health-themed blood donation platform for Nepal. Built with React.js frontend and Django REST Framework backend, integrated with Google Gemini AI for health assistance, prediction model to detect the scarcity of blood resource.
 
 ## Features
 
-- 🏠 **Home Page**: Hero section with real-time counters, feature grid, and call-to-action
-- 🩸 **Find Blood**: Search for hospitals and blood banks by location, blood type, and name and also shows blood prediction where blood is needed and mapping algorithm
-- 📊 **Dashboard**: Track donations, view 56-day calendar, and see earned badges
-- 🤖 **AI Health Assistant**: Chat with AI and analyze medical reports with Nepalese dietary recommendations
-- 🔔 **Notifications**: Get alerts for critical blood needs
-- 🎁 **Points & Rewards**: Earn points for donations, redeem items, and refer friends
-- 👤 **Profile**: Manage personal information and view statistics
-- 🌐 **BloodSync**: Real-time hospital stock ingestion via API key protected endpoint and live public stock lookup
+
+- 🏠 **Home Page**: Hero section with real-time counters, feature grid, and call-to-action.
+
+- 🩸 **Find Blood**: Search for hospitals and blood banks by location, blood type, and name and also shows blood prediction where blood is needed and mapping algorithm with OSM.
+
+- 📊 **Dashboard**: Track donations, view 56-day calendar, and see earned badges.
+
+- 🤖 **AI Health Assistant**: Chat with AI and analyze medical reports with Nepalese dietary recommendations.
+
+- 🔔 **Notifications**: Get alerts for critical blood needs.
+
+- 🎁 **Points & Rewards**: Earn points for donations, redeem items, and refer friends for exclusion rewards.
+
+- 👤 **Profile**: Manage personal information and view statistics.
 
 ## Tech Stack
 
@@ -42,7 +48,7 @@ cd backend
 
 2. Create a virtual environment:
 ```bash
-python -m venv venv
+python -m venv any_name
 ```
 
 3. Activate the virtual environment:
@@ -118,7 +124,7 @@ The frontend will be available at `http://localhost:3000`
 ## Project Structure
 
 ```
-BloodH/
+Trimurti/
 ├── backend/
 │   ├── api/
 │   │   ├── models.py          # Database models
