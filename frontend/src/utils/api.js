@@ -17,6 +17,12 @@ export const registerDonation = (id, data) => api.post(`/donors/${id}/register_d
 // Hospital API
 export const getHospitals = (params) => api.get('/hospitals/', { params })
 export const getBloodPredictions = () => api.get('/hospitals/predictions/')
+export const getHospitalRegistry = (params) => api.get('/hospital-registry/', { params })
+export const getStock = (params) => api.get('/stock/', { params })
+export const ingestTransaction = (data, apiKey) =>
+  api.post('/ingest/transactions/', data, {
+    headers: { 'X-API-Key': apiKey },
+  })
 
 // Blood Bank API
 export const getBloodBanks = (params) => api.get('/bloodbanks/', { params })

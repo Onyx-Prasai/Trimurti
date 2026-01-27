@@ -3,6 +3,17 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 import uuid
 
+BLOOD_GROUP_CHOICES = [
+    ('A+', 'A+'),
+    ('A-', 'A-'),
+    ('B+', 'B+'),
+    ('B-', 'B-'),
+    ('AB+', 'AB+'),
+    ('AB-', 'AB-'),
+    ('O+', 'O+'),
+    ('O-', 'O-'),
+]
+
 
 class DonorProfile(models.Model):
     BLOOD_GROUPS = [
@@ -145,4 +156,60 @@ class Redemption(models.Model):
     
     def __str__(self):
         return f"{self.donor.user.username} - {self.item.name}"
+
+
+class Hospital(models.Model):
+    """Registered hospital/blood bank that sends automated events."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=200)
+    city = models.CharField(max_length=100, default='Kathmandu')
+    address = models.TextField(blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    api_key_hash = models.CharField(max_length=128)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Hospital"
+        verbose_name_plural = "Hospitals"
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+class Transaction(models.Model):
+    """Append-only ledger of incoming or outgoing blood units."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE, related_name='transactions')
+    blood_group = models.CharField(max_length=3, choices=BLOOD_GROUP_CHOICES)
+    units_change = models.IntegerField(help_text="Positive for donation received, negative for units issued")
+    timestamp = models.DateTimeField()
+    ingested_at = models.DateTimeField(auto_now_add=True)
+    source_reference = models.CharField(max_length=100, blank=True)
+    notes = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['-ingested_at']
+
+    def __str__(self):
+        return f"{self.hospital.code} {self.blood_group} {self.units_change}"
+
+
+class BloodStock(models.Model):
+    """Materialized current stock per hospital and blood group."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE, related_name='stock')
+    blood_group = models.CharField(max_length=3, choices=BLOOD_GROUP_CHOICES)
+    units_available = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('hospital', 'blood_group')
+        ordering = ['hospital__name', 'blood_group']
+
+    def __str__(self):
+        return f"{self.hospital.code} {self.blood_group}: {self.units_available}"
 
