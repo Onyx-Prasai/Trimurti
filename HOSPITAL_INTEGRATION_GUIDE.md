@@ -598,8 +598,6 @@ This will show full request/response details.
 
 ---
 
-## 📞 Support
-
 ### Technical Support
 
 **Email**: support@bloodhub.nepal.gov  
