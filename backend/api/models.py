@@ -312,6 +312,7 @@ class Donation(models.Model):
 
 
 class StoreItem(models.Model):
+    """Legacy medicine rewards model - kept for backward compatibility"""
     name = models.CharField(max_length=200)
     description = models.TextField()
     points_cost = models.IntegerField()
@@ -324,6 +325,7 @@ class StoreItem(models.Model):
 
 
 class Redemption(models.Model):
+    """Legacy redemption model - kept for backward compatibility"""
     donor = models.ForeignKey(DonorProfile, on_delete=models.CASCADE, related_name='redemptions')
     item = models.ForeignKey(StoreItem, on_delete=models.CASCADE)
     points_used = models.IntegerField()
@@ -336,6 +338,114 @@ class Redemption(models.Model):
     
     def __str__(self):
         return f"{self.donor.user.username} - {self.item.name}"
+
+
+# New Reward System with Three Categories
+
+class MoneyReward(models.Model):
+    """Points to Money Reward: 1 RS Esewa for every 100 points"""
+    donor = models.ForeignKey(DonorProfile, on_delete=models.CASCADE, related_name='money_rewards')
+    points_used = models.IntegerField()
+    esewa_amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Amount in RS (1 RS per 100 points)")
+    esewa_id = models.CharField(max_length=100, unique=True, help_text="Esewa transaction ID")
+    redeemed_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, default='pending', choices=[
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    ])
+    
+    class Meta:
+        ordering = ['-redeemed_at']
+    
+    def __str__(self):
+        return f"{self.donor.user.username} - {self.esewa_amount} RS ({self.points_used} points)"
+
+
+class DiscountReward(models.Model):
+    """Points to Discounts Reward: Exclusive discounts from restaurants and businesses"""
+    name = models.CharField(max_length=200)
+    business_name = models.CharField(max_length=200, help_text="Name of restaurant/business offering discount")
+    business_type = models.CharField(max_length=100, help_text="e.g., Restaurant, Pharmacy, Grocery Store")
+    description = models.TextField(help_text="Description of the discount offered")
+    discount_percentage = models.IntegerField(help_text="Discount percentage offered")
+    points_cost = models.IntegerField(help_text="Points required to unlock this discount")
+    image = models.ImageField(upload_to='discount_rewards/', null=True, blank=True)
+    coupon_code = models.CharField(max_length=50, unique=True, help_text="Unique coupon code for this discount")
+    valid_until = models.DateField()
+    active = models.BooleanField(default=True)
+    stock = models.IntegerField(default=-1, help_text="Number of available coupons (-1 for unlimited)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} - {self.business_name} ({self.discount_percentage}% off)"
+
+
+class DiscountRedemption(models.Model):
+    """Redemption record for discount rewards"""
+    donor = models.ForeignKey(DonorProfile, on_delete=models.CASCADE, related_name='discount_redemptions')
+    discount_reward = models.ForeignKey(DiscountReward, on_delete=models.CASCADE, related_name='redemptions')
+    points_used = models.IntegerField()
+    redeemed_at = models.DateTimeField(auto_now_add=True)
+    used_at = models.DateTimeField(null=True, blank=True, help_text="When the discount was actually used")
+    status = models.CharField(max_length=20, default='active', choices=[
+        ('active', 'Active'),
+        ('used', 'Used'),
+        ('expired', 'Expired'),
+        ('cancelled', 'Cancelled'),
+    ])
+    
+    class Meta:
+        ordering = ['-redeemed_at']
+    
+    def __str__(self):
+        return f"{self.donor.user.username} - {self.discount_reward.business_name} ({self.discount_reward.discount_percentage}%)"
+
+
+class MedicineReward(models.Model):
+    """Points to Medicine Reward: Original medicine/healthcare product rewards"""
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    category = models.CharField(max_length=100, help_text="e.g., Medicine, Supplement, Healthcare Item")
+    points_cost = models.IntegerField()
+    image = models.ImageField(upload_to='medicine_rewards/', null=True, blank=True)
+    provider = models.CharField(max_length=200, help_text="Pharmacy/Healthcare provider name")
+    stock = models.IntegerField(default=0)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return self.name
+
+
+class MedicineRedemption(models.Model):
+    """Redemption record for medicine rewards"""
+    donor = models.ForeignKey(DonorProfile, on_delete=models.CASCADE, related_name='medicine_redemptions')
+    medicine_reward = models.ForeignKey(MedicineReward, on_delete=models.CASCADE, related_name='redemptions')
+    points_used = models.IntegerField()
+    redeemed_at = models.DateTimeField(auto_now_add=True)
+    delivery_address = models.TextField(blank=True)
+    delivery_phone = models.CharField(max_length=15, blank=True)
+    status = models.CharField(max_length=20, default='pending', choices=[
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('dispatched', 'Dispatched'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+    ])
+    
+    class Meta:
+        ordering = ['-redeemed_at']
+    
+    def __str__(self):
+        return f"{self.donor.user.username} - {self.medicine_reward.name}"
 
 
 class Hospital(models.Model):

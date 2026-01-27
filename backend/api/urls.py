@@ -5,6 +5,10 @@ from .views import (
     DonationViewSet, StoreItemViewSet, RedemptionViewSet, AIHealthViewSet,
     HospitalViewSet, TransactionViewSet, TransactionIngestView, StockView,
 )
+from .reward_views import (
+    MoneyRewardViewSet, DiscountRewardViewSet, DiscountRedemptionViewSet,
+    MedicineRewardViewSet, MedicineRedemptionViewSet,
+)
 from .bloodsync_views import (
     PublicBloodStockView, BloodAvailabilityByCityView, AdminAnalyticsView,
     StockAlertViewSet, DonationDriveViewSet, hospital_list_public,
@@ -21,6 +25,12 @@ router.register(r'redemptions', RedemptionViewSet, basename='redemption')
 router.register(r'ai-health', AIHealthViewSet, basename='ai-health')
 router.register(r'hospital-registry', HospitalViewSet, basename='hospital-registry')
 router.register(r'transactions', TransactionViewSet, basename='transaction')
+# New Reward System Routes
+router.register(r'rewards/money', MoneyRewardViewSet, basename='money-reward')
+router.register(r'rewards/discounts', DiscountRewardViewSet, basename='discount-reward')
+router.register(r'rewards/discount-redemptions', DiscountRedemptionViewSet, basename='discount-redemption')
+router.register(r'rewards/medicine', MedicineRewardViewSet, basename='medicine-reward')
+router.register(r'rewards/medicine-redemptions', MedicineRedemptionViewSet, basename='medicine-redemption')
 
 # BloodSync Nepal specific endpoints
 router.register(r'alerts', StockAlertViewSet, basename='alert')
@@ -46,4 +56,5 @@ urlpatterns = [
     path('ingest/transactions/', TransactionIngestView.as_view(), name='ingest-transaction-legacy'),
     path('stock/', StockView.as_view(), name='stock'),
 ]
+
 
