@@ -20,22 +20,29 @@ const AIHealth = () => {
     if (!input.trim() || loading) return
 
     const userMessage = { role: 'user', content: input }
-    setMessages([...messages, userMessage])
+    const userInput = input
+    setMessages((prevMessages) => [...prevMessages, userMessage])
     setInput('')
     setLoading(true)
 
     try {
-      const response = await chatWithAI(input)
-      setMessages([
-        ...messages,
-        userMessage,
-        { role: 'assistant', content: response.data.response },
-      ])
+      const response = await chatWithAI(userInput)
+      console.log('API Response:', response)
+      
+      if (response.data && response.data.response) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { role: 'assistant', content: response.data.response },
+        ])
+      } else {
+        throw new Error('Invalid response format from API')
+      }
     } catch (error) {
       console.error('Error chatting with AI:', error)
-      setMessages([
-        ...messages,
-        userMessage,
+      console.error('Error details:', error.response?.data || error.message)
+      
+      setMessages((prevMessages) => [
+        ...prevMessages,
         {
           role: 'assistant',
           content: 'Sorry, I encountered an error. Please try again.',
@@ -55,18 +62,26 @@ const AIHealth = () => {
         report_text: reportText,
         report_type: reportType,
       })
-      setMessages([
-        ...messages,
-        {
-          role: 'assistant',
-          content: `Report Analysis:\n\n${response.data.analysis}`,
-        },
-      ])
-      setReportText('')
+      console.log('Report Analysis Response:', response)
+      
+      if (response.data && response.data.analysis) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            role: 'assistant',
+            content: `Report Analysis:\n\n${response.data.analysis}`,
+          },
+        ])
+        setReportText('')
+      } else {
+        throw new Error('Invalid response format from API')
+      }
     } catch (error) {
       console.error('Error analyzing report:', error)
-      setMessages([
-        ...messages,
+      console.error('Error details:', error.response?.data || error.message)
+      
+      setMessages((prevMessages) => [
+        ...prevMessages,
         {
           role: 'assistant',
           content: 'Sorry, I encountered an error analyzing your report. Please try again.',
@@ -141,9 +156,13 @@ const AIHealth = () => {
                     disabled={loading}
                   />
                   <button
-                    onClick={handleSend}
-                    disabled={loading || !input.trim()}
-                    className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button"
+                    onClick={() => {
+                      if (input.trim() && !loading) {
+                        handleSend()
+                      }
+                    }}
+                    className="bg-primary text-white px-6 py-2 rounded-xl hover:bg-red-600 transition-all cursor-pointer active:opacity-80"
                   >
                     Send
                   </button>
@@ -192,9 +211,17 @@ const AIHealth = () => {
                   />
                 </div>
                 <button
-                  onClick={handleAnalyzeReport}
-                  disabled={analyzing || !reportText.trim()}
-                  className="w-full bg-primary text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  type="button"
+                  onClick={() => {
+                    console.log('Button clicked. reportText:', reportText, 'analyzing:', analyzing)
+                    if (reportText.trim() && !analyzing) {
+                      console.log('Calling handleAnalyzeReport with:', reportText, reportType)
+                      handleAnalyzeReport()
+                    } else {
+                      console.log('Condition not met: reportText.trim()=', reportText.trim(), '!analyzing=', !analyzing)
+                    }
+                  }}
+                  className="w-full bg-primary text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-all flex items-center justify-center space-x-2 cursor-pointer active:opacity-80"
                 >
                   {analyzing ? (
                     <>

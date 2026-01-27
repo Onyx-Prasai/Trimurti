@@ -1,6 +1,22 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import DonorProfile, HospitalReq, BloodBank, Donation, StoreItem, Redemption
+from .models import (
+    DonorProfile,
+    HospitalReq,
+    BloodBank,
+    Donation,
+    StoreItem,
+    Redemption,
+    Hospital,
+    BloodStock,
+    Transaction,
+    BLOOD_GROUP_CHOICES,
+    MoneyReward,
+    DiscountReward,
+    DiscountRedemption,
+    MedicineReward,
+    MedicineRedemption,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -67,4 +83,111 @@ class RedemptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Redemption
         fields = '__all__'
+
+
+class HospitalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hospital
+        fields = [
+            'id',
+            'code',
+            'name',
+            'city',
+            'address',
+            'latitude',
+            'longitude',
+            'is_active',
+        ]
+
+
+class BloodStockSerializer(serializers.ModelSerializer):
+    hospital = HospitalSerializer(read_only=True)
+
+    class Meta:
+        model = BloodStock
+        fields = ['id', 'hospital', 'blood_group', 'units_available', 'updated_at']
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    hospital = HospitalSerializer(read_only=True)
+
+    class Meta:
+        model = Transaction
+        fields = [
+            'id',
+            'hospital',
+            'blood_group',
+            'units_change',
+            'timestamp',
+            'ingested_at',
+            'source_reference',
+            'notes',
+        ]
+
+
+class IngestTransactionSerializer(serializers.Serializer):
+    hospital_id = serializers.UUIDField()
+    blood_group = serializers.ChoiceField(choices=BLOOD_GROUP_CHOICES)
+    units_change = serializers.IntegerField()
+    timestamp = serializers.DateTimeField()
+    source_reference = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    notes = serializers.CharField(required=False, allow_blank=True, max_length=255)
+
+
+# New Reward System Serializers
+
+class MoneyRewardSerializer(serializers.ModelSerializer):
+    donor_name = serializers.CharField(source='donor.user.username', read_only=True)
+    
+    class Meta:
+        model = MoneyReward
+        fields = ['id', 'donor', 'donor_name', 'points_used', 'esewa_amount', 'esewa_id', 
+                  'redeemed_at', 'status']
+        read_only_fields = ['id', 'redeemed_at']
+
+
+class DiscountRewardSerializer(serializers.ModelSerializer):
+    days_remaining = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = DiscountReward
+        fields = ['id', 'name', 'business_name', 'business_type', 'description', 
+                  'discount_percentage', 'points_cost', 'image', 'coupon_code', 
+                  'valid_until', 'days_remaining', 'active', 'stock', 'created_at']
+        read_only_fields = ['id', 'created_at']
+    
+    def get_days_remaining(self, obj):
+        from datetime import date
+        remaining = (obj.valid_until - date.today()).days
+        return max(0, remaining)
+
+
+class DiscountRedemptionSerializer(serializers.ModelSerializer):
+    donor_name = serializers.CharField(source='donor.user.username', read_only=True)
+    discount_info = DiscountRewardSerializer(source='discount_reward', read_only=True)
+    
+    class Meta:
+        model = DiscountRedemption
+        fields = ['id', 'donor', 'donor_name', 'discount_reward', 'discount_info', 
+                  'points_used', 'redeemed_at', 'used_at', 'status']
+        read_only_fields = ['id', 'redeemed_at']
+
+
+class MedicineRewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MedicineReward
+        fields = ['id', 'name', 'description', 'category', 'points_cost', 'image', 
+                  'provider', 'stock', 'active', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class MedicineRedemptionSerializer(serializers.ModelSerializer):
+    donor_name = serializers.CharField(source='donor.user.username', read_only=True)
+    medicine_info = MedicineRewardSerializer(source='medicine_reward', read_only=True)
+    
+    class Meta:
+        model = MedicineRedemption
+        fields = ['id', 'donor', 'donor_name', 'medicine_reward', 'medicine_info', 
+                  'points_used', 'redeemed_at', 'delivery_address', 'delivery_phone', 'status']
+        read_only_fields = ['id', 'redeemed_at']
 
