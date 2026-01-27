@@ -69,6 +69,14 @@ def register_view(request):
         user = serializer.save()
         token, created = Token.objects.get_or_create(user=user)
         
+        # Create DonorProfile if user_type is base_user (donor)
+        if user.user_type == 'base_user':
+            from api.models import DonorProfile
+            DonorProfile.objects.get_or_create(
+                user=user,
+                defaults={'blood_group': 'O+'}
+            )
+        
         return Response({
             'token': token.key,
             'user': UserSerializer(user).data,

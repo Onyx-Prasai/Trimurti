@@ -38,6 +38,23 @@ class DonorProfileViewSet(viewsets.ModelViewSet):
     serializer_class = DonorProfileSerializer
     permission_classes = [AllowAny]
     
+    def get_object(self):
+        """
+        Override get_object to allow fetching by user_id
+        If pk looks like a user_id, try to get the DonorProfile for that user
+        """
+        pk = self.kwargs.get('pk')
+        try:
+            # Try to get by DonorProfile ID first
+            return DonorProfile.objects.get(pk=pk)
+        except DonorProfile.DoesNotExist:
+            # If not found, try to get by user_id
+            try:
+                return DonorProfile.objects.get(user_id=pk)
+            except DonorProfile.DoesNotExist:
+                from rest_framework.exceptions import NotFound
+                raise NotFound(f'No DonorProfile found for ID or User ID {pk}')
+    
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """Get overall platform statistics"""
