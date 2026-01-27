@@ -14,7 +14,7 @@ export default function Login({ setIsAuthenticated }) {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login/', {
+      const response = await fetch('/api/auth/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -26,6 +26,7 @@ export default function Login({ setIsAuthenticated }) {
       });
 
       const data = await response.json();
+      console.log('Login response:', data);
 
       if (response.ok) {
         localStorage.setItem('token', data.token);
@@ -36,6 +37,7 @@ export default function Login({ setIsAuthenticated }) {
         setError(data.detail || 'Login failed. Please try again.');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
