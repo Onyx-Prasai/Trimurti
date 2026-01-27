@@ -12,7 +12,7 @@ from .reward_views import (
 from .bloodsync_views import (
     PublicBloodStockView, BloodAvailabilityByCityView, AdminAnalyticsView,
     StockAlertViewSet, DonationDriveViewSet, hospital_list_public,
-    check_stock_alerts, blood_stock_map_data,
+    check_stock_alerts, blood_stock_map_data, NearbyDonorLocatorView, priority_hospitals,
 )
 
 router = DefaultRouter()
@@ -46,11 +46,13 @@ urlpatterns = [
     path('v1/public/blood-stock/', PublicBloodStockView.as_view(), name='public-blood-stock'),
     path('v1/public/blood-availability/<str:city>/', BloodAvailabilityByCityView.as_view(), name='blood-availability-city'),
     path('v1/public/hospitals/', hospital_list_public, name='public-hospitals'),
+    path('v1/public/priority-hospitals/', priority_hospitals, name='priority-hospitals'),
     path('v1/public/map-data/', blood_stock_map_data, name='map-data'),
     
     # Admin API (Protected)
     path('v1/admin/analytics/national/', AdminAnalyticsView.as_view(), name='admin-analytics'),
     path('v1/admin/check-alerts/', check_stock_alerts, name='check-alerts'),
+    path('v1/admin/locate-donors/', NearbyDonorLocatorView.as_view(), name='locate-donors'),
     
     # Legacy endpoints
     path('ingest/transactions/', TransactionIngestView.as_view(), name='ingest-transaction-legacy'),

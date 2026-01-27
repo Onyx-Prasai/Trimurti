@@ -103,6 +103,10 @@ class DonorProfile(models.Model):
     phone = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
     district = models.CharField(max_length=100, choices=DISTRICTS, default='Kathmandu')
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    location_consent = models.BooleanField(default=False)
+    location_verified_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def can_donate(self):
