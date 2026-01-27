@@ -365,12 +365,24 @@ class StockView(APIView):
     def get(self, request):
         blood_group = request.query_params.get('blood_group')
         city = request.query_params.get('city')
+        blood_product_type = request.query_params.get('blood_product_type')
+        sort_by = request.query_params.get('sort_by', 'hospital__name')  # Default sort by hospital name
+        order = request.query_params.get('order', 'asc')  # Default order ascending
 
         queryset = BloodStock.objects.select_related('hospital')
+        
         if blood_group:
             queryset = queryset.filter(blood_group=blood_group)
         if city:
             queryset = queryset.filter(hospital__city__icontains=city)
+        if blood_product_type:
+            queryset = queryset.filter(blood_product_type=blood_product_type)
+
+        # Apply sorting
+        if sort_by:
+            if order == 'desc':
+                sort_by = f'-{sort_by}'
+            queryset = queryset.order_by(sort_by)
 
         serializer = BloodStockSerializer(queryset, many=True)
         return Response(serializer.data)

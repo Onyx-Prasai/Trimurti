@@ -484,17 +484,6 @@ This project is licensed under the MIT License - see LICENSE file for details.
 - All participating hospitals and blood banks
 - Open-source community
 
----
-
-## 📞 Contact & Support
-
-**Project Maintainer**: [Your Name]  
-**Email**: bloodhub@nepal.gov  
-**Website**: https://bloodhub.nepal.gov  
-**Emergency Hotline**: +977-XXX-XXXXXX
-
----
-
 ## 🔮 Future Enhancements
 
 - [ ] Mobile app (React Native)
@@ -509,7 +498,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 ---
 
 ## ⭐ Star this project if you find it useful!
-
+2
 **Together, we can save lives through better blood management in Nepal.**
 
 ---
