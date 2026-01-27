@@ -4,7 +4,6 @@ A professional-grade, health-themed blood donation platform for Nepal. Built wit
 
 ## Features
 
-<<<<<<< HEAD
 - 🏠 **Home Page**: Hero section with real-time counters, feature grid, and call-to-action.
 
 - 🩸 **Find Blood**: Search for hospitals and blood banks by location, blood type, and name and also shows blood prediction where blood is needed and mapping algorithm with OSM.
@@ -18,7 +17,6 @@ A professional-grade, health-themed blood donation platform for Nepal. Built wit
 - 🎁 **Points & Rewards**: Earn points for donations, redeem items, and refer friends for exclusion rewards.
 
 - 👤 **Profile**: Manage personal information and view statistics.
-=======
 - 🏠 **Home Page**: Hero section with real-time counters, feature grid, and call-to-action
 - 🩸 **Find Blood**: Search for hospitals and blood banks by location, blood type, and name and also shows blood prediction where blood is needed and mapping algorithm
 - 📊 **Dashboard**: Track donations, view 56-day calendar, and see earned badges
@@ -27,7 +25,7 @@ A professional-grade, health-themed blood donation platform for Nepal. Built wit
 - 🎁 **Points & Rewards**: Earn points for donations, redeem items, and refer friends
 - 👤 **Profile**: Manage personal information and view statistics
 - 🌐 **BloodSync**: Real-time hospital stock ingestion via API key protected endpoint and live public stock lookup
->>>>>>> edbd830fb2b684792739bafcf5792621e0f7943b
+
 
 ## Tech Stack
 
