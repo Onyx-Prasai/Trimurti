@@ -118,7 +118,7 @@ export default function Login({ setIsAuthenticated }) {
         <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h2>
-            <p className="text-gray-600">Sign in to access your BloodSync account</p>
+            <p className="text-gray-600">Sign in to access your Blood Hub account</p>
           </div>
 
           {error && (
