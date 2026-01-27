@@ -2,17 +2,32 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
+from django.db import transaction as db_transaction
 from django.db.models import Q, Count
 from django.utils import timezone
 from datetime import timedelta
-from .models import DonorProfile, HospitalReq, BloodBank, Donation, StoreItem, Redemption
+from .models import (
+    DonorProfile,
+    HospitalReq,
+    BloodBank,
+    Donation,
+    StoreItem,
+    Redemption,
+    Hospital,
+    BloodStock,
+    Transaction,
+)
 from .serializers import (
     DonorProfileSerializer, HospitalReqSerializer, BloodBankSerializer,
-    DonationSerializer, StoreItemSerializer, RedemptionSerializer
+    DonationSerializer, StoreItemSerializer, RedemptionSerializer,
+    HospitalSerializer, BloodStockSerializer, TransactionSerializer,
+    IngestTransactionSerializer,
 )
 from .prediction import predict_blood_needs
 from django.conf import settings
 import os
+from .authentication import HospitalAPIKeyAuthentication
 
 
 class DonorProfileViewSet(viewsets.ModelViewSet):
@@ -231,6 +246,109 @@ Provide a helpful, practical answer focused on food and lifestyle. Do not recomm
                 return Response({'error': error_message}, status=status.HTTP_401_UNAUTHORIZED)
             
             return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class HospitalViewSet(viewsets.ReadOnlyModelViewSet):
+    """Public registry of participating hospitals."""
+
+    queryset = Hospital.objects.filter(is_active=True)
+    serializer_class = HospitalSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = Hospital.objects.filter(is_active=True)
+        city = self.request.query_params.get('city')
+        search = self.request.query_params.get('search')
+        if city:
+            queryset = queryset.filter(city__icontains=city)
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+        return queryset
+
+
+class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
+    """View-only access to transaction ledger (for demos/ops)."""
+
+    queryset = Transaction.objects.select_related('hospital')
+    serializer_class = TransactionSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = Transaction.objects.select_related('hospital')
+        hospital_id = self.request.query_params.get('hospital_id')
+        if hospital_id:
+            queryset = queryset.filter(hospital_id=hospital_id)
+        blood_group = self.request.query_params.get('blood_group')
+        if blood_group:
+            queryset = queryset.filter(blood_group=blood_group)
+        return queryset
+
+
+class TransactionIngestView(APIView):
+    """Hospital-side ingestion endpoint (API-key protected)."""
+
+    authentication_classes = [HospitalAPIKeyAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = IngestTransactionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        hospital = getattr(request, "user", None)
+        if not isinstance(hospital, Hospital):
+            return Response(
+                {"detail": "Valid X-API-Key header is required."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        data = serializer.validated_data
+        with db_transaction.atomic():
+            # Append to transaction ledger
+            txn = Transaction.objects.create(
+                hospital=hospital,
+                blood_group=data['blood_group'],
+                units_change=data['units_change'],
+                timestamp=data['timestamp'],
+                source_reference=data.get('source_reference', ''),
+                notes=data.get('notes', ''),
+            )
+
+            # Update materialized stock with row-level locking
+            stock, _ = BloodStock.objects.select_for_update().get_or_create(
+                hospital=hospital,
+                blood_group=data['blood_group'],
+                defaults={'units_available': 0},
+            )
+            stock.units_available = max(0, stock.units_available + data['units_change'])
+            stock.save()
+
+        return Response(
+            {
+                "message": "Transaction ingested",
+                "transaction": TransactionSerializer(txn).data,
+                "stock": BloodStockSerializer(stock).data,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class StockView(APIView):
+    """Public stock lookup endpoint."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        blood_group = request.query_params.get('blood_group')
+        city = request.query_params.get('city')
+
+        queryset = BloodStock.objects.select_related('hospital')
+        if blood_group:
+            queryset = queryset.filter(blood_group=blood_group)
+        if city:
+            queryset = queryset.filter(hospital__city__icontains=city)
+
+        serializer = BloodStockSerializer(queryset, many=True)
+        return Response(serializer.data)
     
     @action(detail=False, methods=['post'])
     def analyze_report(self, request):
