@@ -624,7 +624,6 @@ const FindBlood = () => {
             </div>
           )}
         </motion.div>
-        )}
       </div>
     </div>
   )
