@@ -571,7 +571,7 @@ const FindBlood = () => {
           </div>
         </div>
         )}
-        
+
         {/* Blood Prediction Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
