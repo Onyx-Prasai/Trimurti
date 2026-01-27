@@ -395,3 +395,75 @@ class BloodStock(models.Model):
         product_display = dict(BLOOD_PRODUCT_CHOICES).get(self.blood_product_type, self.blood_product_type)
         return f"{self.hospital.code} {self.blood_group} ({product_display}): {self.units_available}"
 
+
+class StockAlert(models.Model):
+    """Track low stock alerts for hospitals."""
+    ALERT_LEVELS = [
+        ('low', 'Low'),
+        ('critical', 'Critical'),
+        ('emergency', 'Emergency'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE, related_name='alerts')
+    blood_group = models.CharField(max_length=3, choices=BLOOD_GROUP_CHOICES)
+    alert_level = models.CharField(max_length=20, choices=ALERT_LEVELS)
+    threshold = models.IntegerField()
+    current_units = models.IntegerField()
+    triggered_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    notified = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-triggered_at']
+    
+    def __str__(self):
+        return f"{self.hospital.code} {self.blood_group} - {self.alert_level}"
+    
+    @property
+    def is_resolved(self):
+        return self.resolved_at is not None
+
+
+class DonationDrive(models.Model):
+    """Suggested or planned blood donation campaigns."""
+    URGENCY_LEVELS = [
+        ('normal', 'Normal'),
+        ('urgent', 'Urgent'),
+        ('critical', 'Critical'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('planned', 'Planned'),
+        ('active', 'Active'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=200)
+    city = models.CharField(max_length=100)
+    blood_groups = models.JSONField(help_text="List of blood groups needed, e.g., ['O+', 'A-']")
+    urgency = models.CharField(max_length=20, choices=URGENCY_LEVELS)
+    target_units = models.IntegerField()
+    collected_units = models.IntegerField(default=0)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planned')
+    description = models.TextField(blank=True)
+    location = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-start_date']
+    
+    def __str__(self):
+        return f"{self.title} - {self.city}"
+    
+    @property
+    def progress_percentage(self):
+        if self.target_units == 0:
+            return 0
+        return min(100, (self.collected_units / self.target_units) * 100)
+

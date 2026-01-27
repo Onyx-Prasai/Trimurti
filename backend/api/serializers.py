@@ -10,6 +10,8 @@ from .models import (
     Hospital,
     BloodStock,
     Transaction,
+    StockAlert,
+    DonationDrive,
     BLOOD_GROUP_CHOICES,
 )
 
@@ -121,10 +123,34 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class IngestTransactionSerializer(serializers.Serializer):
-    hospital_id = serializers.UUIDField()
     blood_group = serializers.ChoiceField(choices=BLOOD_GROUP_CHOICES)
     units_change = serializers.IntegerField()
     timestamp = serializers.DateTimeField()
     source_reference = serializers.CharField(required=False, allow_blank=True, max_length=100)
     notes = serializers.CharField(required=False, allow_blank=True, max_length=255)
+
+
+class StockAlertSerializer(serializers.ModelSerializer):
+    hospital = HospitalSerializer(read_only=True)
+    is_resolved = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = StockAlert
+        fields = '__all__'
+
+
+class DonationDriveSerializer(serializers.ModelSerializer):
+    progress_percentage = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = DonationDrive
+        fields = '__all__'
+
+
+class PublicBloodStockSerializer(serializers.Serializer):
+    """Serializer for public blood stock query results."""
+    hospital = HospitalSerializer()
+    stock = serializers.DictField()
+    last_updated = serializers.DateTimeField()
+
 
