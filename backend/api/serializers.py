@@ -1,6 +1,17 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import DonorProfile, HospitalReq, BloodBank, Donation, StoreItem, Redemption
+from .models import (
+    DonorProfile,
+    HospitalReq,
+    BloodBank,
+    Donation,
+    StoreItem,
+    Redemption,
+    Hospital,
+    BloodStock,
+    Transaction,
+    BLOOD_GROUP_CHOICES,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -67,4 +78,53 @@ class RedemptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Redemption
         fields = '__all__'
+
+
+class HospitalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hospital
+        fields = [
+            'id',
+            'code',
+            'name',
+            'city',
+            'address',
+            'latitude',
+            'longitude',
+            'is_active',
+        ]
+
+
+class BloodStockSerializer(serializers.ModelSerializer):
+    hospital = HospitalSerializer(read_only=True)
+
+    class Meta:
+        model = BloodStock
+        fields = ['id', 'hospital', 'blood_group', 'units_available', 'updated_at']
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    hospital = HospitalSerializer(read_only=True)
+
+    class Meta:
+        model = Transaction
+        fields = [
+            'id',
+            'hospital',
+            'blood_group',
+            'units_change',
+            'timestamp',
+            'ingested_at',
+            'source_reference',
+            'notes',
+        ]
+
+
+class IngestTransactionSerializer(serializers.Serializer):
+    hospital_id = serializers.UUIDField()
+    blood_group = serializers.ChoiceField(choices=BLOOD_GROUP_CHOICES)
+    units_change = serializers.IntegerField()
+    timestamp = serializers.DateTimeField()
+    source_reference = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    notes = serializers.CharField(required=False, allow_blank=True, max_length=255)
 

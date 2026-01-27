@@ -2,17 +2,32 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
+from django.db import transaction as db_transaction
 from django.db.models import Q, Count
 from django.utils import timezone
 from datetime import timedelta
-from .models import DonorProfile, HospitalReq, BloodBank, Donation, StoreItem, Redemption
+from .models import (
+    DonorProfile,
+    HospitalReq,
+    BloodBank,
+    Donation,
+    StoreItem,
+    Redemption,
+    Hospital,
+    BloodStock,
+    Transaction,
+)
 from .serializers import (
     DonorProfileSerializer, HospitalReqSerializer, BloodBankSerializer,
-    DonationSerializer, StoreItemSerializer, RedemptionSerializer
+    DonationSerializer, StoreItemSerializer, RedemptionSerializer,
+    HospitalSerializer, BloodStockSerializer, TransactionSerializer,
+    IngestTransactionSerializer,
 )
 from .prediction import predict_blood_needs
 from django.conf import settings
 import os
+from .authentication import HospitalAPIKeyAuthentication
 
 
 class DonorProfileViewSet(viewsets.ModelViewSet):
@@ -179,14 +194,13 @@ class RedemptionViewSet(viewsets.ModelViewSet):
 class AIHealthViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
     
-    def _get_model(self):
-        """Lazy load Gemini API to avoid import errors at startup"""
+    def _get_client(self):
+        """Initialize Mistral AI client"""
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            return genai.GenerativeModel('gemini-pro')
+            from mistralai import Mistral
+            return Mistral(api_key=settings.MISTRAL_API_KEY)
         except ImportError as e:
-            raise ImportError(f"Failed to import google.generativeai: {e}. Please install a compatible version.")
+            raise ImportError(f"Failed to import mistralai: {e}. Please install mistralai package.")
     
     @action(detail=False, methods=['post'])
     def chat(self, request):
@@ -197,63 +211,188 @@ class AIHealthViewSet(viewsets.ViewSet):
             return Response({'error': 'Message is required'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            model = self._get_model()
-            prompt = f"""You are a health assistant for Blood Hub Nepal. Provide helpful, accurate health information related to blood donation, nutrition, and general wellness. 
-            Focus on Nepalese dietary recommendations when relevant. Keep responses concise and practical.
+            client = self._get_client()
             
-            User question: {message}
+            prompt = f"""You are a helpful health and nutrition assistant for Blood Hub Nepal. Your role is to:
+1. Provide health tips and wellness advice
+2. Recommend nutritious foods and dietary suggestions
+3. Offer lifestyle and exercise recommendations
+4. Answer blood donation-related questions
+
+IMPORTANT RULES:
+- NEVER recommend or mention any medicines, medications, drugs, or pharmaceutical products
+- Only suggest natural foods, healthy lifestyle changes, and general wellness advice
+- Keep responses concise, practical, and relevant to Nepalese dietary context
+- For iron-rich foods, mention: spinach, lentils, red meat, fortified grains, dates
+- For calcium-rich foods, mention: milk, yogurt, sesame seeds, leafy greens
+- For protein sources, mention: chickpeas, beans, fish, eggs, nuts
+
+User Question: {message}
+
+Provide a helpful, practical answer focused on food and lifestyle. Do not recommend medicines."""
             
-            Response:"""
+            response = client.chat.complete(
+                model="mistral-small-latest",
+                messages=[{"role": "user", "content": prompt}]
+            )
             
-            response = model.generate_content(prompt)
-            return Response({'response': response.text})
+            return Response({'response': response.choices[0].message.content})
         except ImportError as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
-            # Catching potential API errors more gracefully
             error_message = f"An error occurred while communicating with the AI service: {str(e)}"
-            # Check for common API key-related errors
-            if "API key not valid" in str(e) or "PERMISSION_DENIED" in str(e):
-                error_message = "The provided API key is invalid or lacks the necessary permissions. Please check your key and try again."
+            if "unauthorized" in str(e).lower() or "api key" in str(e).lower():
+                error_message = "The provided API key is invalid. Please check your API key and try again."
                 return Response({'error': error_message}, status=status.HTTP_401_UNAUTHORIZED)
             
             return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class HospitalViewSet(viewsets.ReadOnlyModelViewSet):
+    """Public registry of participating hospitals."""
+
+    queryset = Hospital.objects.filter(is_active=True)
+    serializer_class = HospitalSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = Hospital.objects.filter(is_active=True)
+        city = self.request.query_params.get('city')
+        search = self.request.query_params.get('search')
+        if city:
+            queryset = queryset.filter(city__icontains=city)
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+        return queryset
+
+
+class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
+    """View-only access to transaction ledger (for demos/ops)."""
+
+    queryset = Transaction.objects.select_related('hospital')
+    serializer_class = TransactionSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = Transaction.objects.select_related('hospital')
+        hospital_id = self.request.query_params.get('hospital_id')
+        if hospital_id:
+            queryset = queryset.filter(hospital_id=hospital_id)
+        blood_group = self.request.query_params.get('blood_group')
+        if blood_group:
+            queryset = queryset.filter(blood_group=blood_group)
+        return queryset
+
+
+class TransactionIngestView(APIView):
+    """Hospital-side ingestion endpoint (API-key protected)."""
+
+    authentication_classes = [HospitalAPIKeyAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = IngestTransactionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        hospital = getattr(request, "user", None)
+        if not isinstance(hospital, Hospital):
+            return Response(
+                {"detail": "Valid X-API-Key header is required."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        data = serializer.validated_data
+        with db_transaction.atomic():
+            # Append to transaction ledger
+            txn = Transaction.objects.create(
+                hospital=hospital,
+                blood_group=data['blood_group'],
+                units_change=data['units_change'],
+                timestamp=data['timestamp'],
+                source_reference=data.get('source_reference', ''),
+                notes=data.get('notes', ''),
+            )
+
+            # Update materialized stock with row-level locking
+            stock, _ = BloodStock.objects.select_for_update().get_or_create(
+                hospital=hospital,
+                blood_group=data['blood_group'],
+                defaults={'units_available': 0},
+            )
+            stock.units_available = max(0, stock.units_available + data['units_change'])
+            stock.save()
+
+        return Response(
+            {
+                "message": "Transaction ingested",
+                "transaction": TransactionSerializer(txn).data,
+                "stock": BloodStockSerializer(stock).data,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class StockView(APIView):
+    """Public stock lookup endpoint."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        blood_group = request.query_params.get('blood_group')
+        city = request.query_params.get('city')
+
+        queryset = BloodStock.objects.select_related('hospital')
+        if blood_group:
+            queryset = queryset.filter(blood_group=blood_group)
+        if city:
+            queryset = queryset.filter(hospital__city__icontains=city)
+
+        serializer = BloodStockSerializer(queryset, many=True)
+        return Response(serializer.data)
     
     @action(detail=False, methods=['post'])
     def analyze_report(self, request):
-        """Analyze medical report using Gemini Vision"""
+        """Analyze medical report and provide health/food recommendations"""
         try:
-            # For text-based analysis (if image upload is handled separately)
             report_text = request.data.get('report_text', '')
             report_type = request.data.get('report_type', 'general')
             
             if not report_text:
                 return Response({'error': 'Report text is required'}, status=status.HTTP_400_BAD_REQUEST)
             
-            model = self._get_model()
-            prompt = f"""Analyze this medical report and provide specific recommendations:
+            client = self._get_client()
             
-            Report Type: {report_type}
-            Report Content: {report_text}
+            prompt = f"""You are a health and nutrition advisor for Blood Hub Nepal. When analyzing medical reports, follow these rules:
+
+RULES:
+- NEVER recommend medicines, medications, drugs, or pharmaceutical products
+- Only suggest natural foods and lifestyle changes
+- Always advise consulting a doctor for medical treatment
+- Focus on preventive health and nutrition
+- Keep recommendations practical and actionable
+
+Report Type: {report_type}
+Report Content: {report_text}
+
+Please provide:
+1. Summary of key findings
+2. Specific Nepalese foods to eat (iron-rich: spinach, lentils, red meat; calcium-rich: milk, yogurt, sesame; protein-rich: chickpeas, beans, fish)
+3. Foods to avoid or limit
+4. Daily lifestyle and exercise suggestions
+5. Wellness tips"""
             
-            Please provide:
-            1. Key findings
-            2. Specific Nepalese dietary recommendations (iron-rich foods like spinach, lentils, etc.)
-            3. Lifestyle suggestions
-            4. When to consult a doctor
+            response = client.chat.complete(
+                model="mistral-small-latest",
+                messages=[{"role": "user", "content": prompt}]
+            )
             
-            Response:"""
-            
-            response = model.generate_content(prompt)
-            return Response({'analysis': response.text})
+            return Response({'analysis': response.choices[0].message.content})
         except ImportError as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
-            # Catching potential API errors more gracefully
             error_message = f"An error occurred while communicating with the AI service: {str(e)}"
-            # Check for common API key-related errors
-            if "API key not valid" in str(e) or "PERMISSION_DENIED" in str(e):
-                error_message = "The provided API key is invalid or lacks the necessary permissions. Please check your key and try again."
+            if "unauthorized" in str(e).lower() or "api key" in str(e).lower():
+                error_message = "The provided API key is invalid. Please check your API key and try again."
                 return Response({'error': error_message}, status=status.HTTP_401_UNAUTHORIZED)
             
             return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

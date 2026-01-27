@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FaSearch, FaPhone, FaMapMarkerAlt, FaExclamationCircle, FaChartLine, FaUniversity } from 'react-icons/fa'
-import { getHospitals, getBloodBanks, getBloodPredictions } from '../utils/api'
+import { getHospitals, getBloodBanks, getBloodPredictions, getStock } from '../utils/api'
 
 const FindBlood = () => {
   const [searchType, setSearchType] = useState('hospitals')
@@ -13,8 +13,11 @@ const FindBlood = () => {
   const [hospitals, setHospitals] = useState([])
   const [bloodBanks, setBloodBanks] = useState([])
   const [predictions, setPredictions] = useState([])
+  const [stock, setStock] = useState([])
+  const [stockFilters, setStockFilters] = useState({ blood_group: '', city: '' })
   const [loading, setLoading] = useState(false)
   const [predictionsLoading, setPredictionsLoading] = useState(false)
+  const [stockLoading, setStockLoading] = useState(false)
   const [eligibilityChecklist, setEligibilityChecklist] = useState({
     age: false,
     weight: false,
@@ -30,6 +33,12 @@ const FindBlood = () => {
   useEffect(() => {
     fetchPredictions()
   }, [])
+
+  useEffect(() => {
+    fetchStock()
+    const interval = setInterval(fetchStock, 15000)
+    return () => clearInterval(interval)
+  }, [stockFilters])
 
   const fetchData = async () => {
     setLoading(true)
@@ -62,8 +71,24 @@ const FindBlood = () => {
     }
   }
 
+  const fetchStock = async () => {
+    setStockLoading(true)
+    try {
+      const response = await getStock(stockFilters)
+      setStock(Array.isArray(response.data) ? response.data : [])
+    } catch (error) {
+      console.error('Error fetching stock:', error)
+    } finally {
+      setStockLoading(false)
+    }
+  }
+
   const handleFilterChange = (key, value) => {
     setFilters({ ...filters, [key]: value })
+  }
+
+  const handleStockFilterChange = (key, value) => {
+    setStockFilters({ ...stockFilters, [key]: value })
   }
 
   const getGoogleMapsLink = (lat, lng, name) => {
@@ -99,6 +124,83 @@ const FindBlood = () => {
         >
           Find Blood
         </motion.h1>
+
+        {/* Live Stock Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl p-6 shadow-lg mb-8"
+        >
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <h2 className="text-2xl font-semibold text-text">Live Blood Availability</h2>
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={stockFilters.blood_group}
+                onChange={(e) => handleStockFilterChange('blood_group', e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="">All Blood Groups</option>
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={stockFilters.city}
+                onChange={(e) => handleStockFilterChange('city', e.target.value)}
+                placeholder="Filter by city"
+                className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              <button
+                onClick={fetchStock}
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-xl hover:bg-red-600 transition-all"
+              >
+                <FaSearch />
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          {stockLoading ? (
+            <div className="text-center py-4">Loading live stock...</div>
+          ) : stock.length === 0 ? (
+            <div className="text-center py-4 text-text">No stock records yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Hospital</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">City</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Blood Group</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Units</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Updated</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {stock.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-text">{item.hospital?.name}</p>
+                        <p className="text-sm text-gray-500">{item.hospital?.address}</p>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{item.hospital?.city}</td>
+                      <td className="px-4 py-3">
+                        <span className="px-3 py-1 bg-primary text-white rounded-full text-sm">
+                          {item.blood_group}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-lg font-bold text-text">{item.units_available}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {new Date(item.updated_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </motion.div>
 
         {/* Search Type Toggle */}
         <div className="flex justify-center mb-6">

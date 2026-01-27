@@ -4,6 +4,7 @@ A professional-grade, health-themed blood donation platform for Nepal. Built wit
 
 ## Features
 
+
 - 🏠 **Home Page**: Hero section with real-time counters, feature grid, and call-to-action.
 
 - 🩸 **Find Blood**: Search for hospitals and blood banks by location, blood type, and name and also shows blood prediction where blood is needed and mapping algorithm with OSM.
@@ -32,7 +33,7 @@ A professional-grade, health-themed blood donation platform for Nepal. Built wit
 - Django 4.2.7
 - Django REST Framework 3.14.0
 - Google Gemini API
-- SQLite (development)
+- SQLite (development) — replace with PostgreSQL for production
 
 ### AI/ML 
 
@@ -88,7 +89,13 @@ python manage.py seed_data
 python manage.py createsuperuser
 ```
 
-9. Run the development server:
+9. (Optional) Generate a demo hospital + API key for BloodSync ingestion:
+```bash
+python manage.py seed_bloodsync
+```
+The command prints a `X-API-Key` value you can use for posting transactions.
+
+10. Run the development server:
 ```bash
 python manage.py runserver
 ```
@@ -179,5 +186,16 @@ The backend includes a prediction model that analyzes:
 - `POST /api/redemptions/` - Redeem points
 - `POST /api/ai-health/chat/` - AI chat
 - `POST /api/ai-health/analyze_report/` - Analyze medical report
+- `POST /api/ingest/transactions/` - Hospital-side ingestion (headers: `X-API-Key`, body: `hospital_id`, `blood_group`, `units_change`, `timestamp`)
+- `GET /api/stock/` - Public stock lookup (filters: `blood_group`, `city`)
+- `GET /api/hospital-registry/` - Public registry of participating hospitals
+- `GET /api/transactions/` - Read-only transaction ledger (filters: `hospital_id`, `blood_group`)
+
+## BloodSync Prototype Architecture
+- **Hospital adapter**: lightweight service/plugin in the hospital’s HIS/LIS that calls `POST /api/ingest/transactions/` on donation received or unit issued events. Only non-personal data is sent.
+- **Central ingestion**: API key authentication per hospital, append-only `Transaction` ledger, and materialized `BloodStock` table updated atomically.
+- **Public availability**: `GET /api/stock/` serves current units per hospital/blood group for the React dashboard. Polling every ~15s in the prototype; upgradeable to WebSockets/SSE.
+- **Data model**: `Hospital` (with hashed API key), `Transaction` (units_change, timestamp), `BloodStock` (current counts).
+- **Security**: HTTPS (configure in deployment), per-hospital API key, optional request signing in future, no personal data in payloads.
 
 
