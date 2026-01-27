@@ -19,7 +19,9 @@ from .models import (
     DiscountRedemption,
     MedicineReward,
     MedicineRedemption,
-)
+        BloodRequest,
+        SMSNotificationLog,
+    )
 
 User = get_user_model()
 
@@ -237,5 +239,33 @@ class NearbyDonorRequestSerializer(serializers.Serializer):
         if not attrs.get('hospital_id') and not attrs.get('hospital_code'):
             raise serializers.ValidationError('Provide either hospital_id or hospital_code')
         return attrs
+
+class SMSNotificationLogSerializer(serializers.ModelSerializer):
+    """Serializer for SMS notification logs"""
+    class Meta:
+        model = SMSNotificationLog
+        fields = ['id', 'blood_request', 'recipient', 'phone_number', 'message', 'status', 'sent_at', 'twilio_sid', 'error_message']
+        read_only_fields = ['id', 'sent_at', 'twilio_sid', 'error_message']
+
+class BloodRequestSerializer(serializers.ModelSerializer):
+    """Serializer for blood requests"""
+    created_by_name = serializers.SerializerMethodField()
+    sms_logs = SMSNotificationLogSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = BloodRequest
+        fields = [
+            'id', 'hospital_name', 'district', 'city', 'location', 'blood_type',
+            'blood_product', 'urgency', 'units_needed', 'contact_number',
+            'contact_person', 'status', 'created_by', 'created_by_name',
+            'created_at', 'updated_at', 'sms_logs'
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'sms_logs']
+    
+    def get_created_by_name(self, obj):
+        """Return the name of the user who created the request"""
+        if obj.created_by:
+            return f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.username
+        return "Anonymous"
 
 

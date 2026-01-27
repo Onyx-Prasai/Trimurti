@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import FindBlood from './pages/FindBlood'
+import BloodPrediction from './pages/BloodPrediction'
+import BloodRequest from './pages/BloodRequest'
 import Dashboard from './pages/Dashboard'
 import AIHealth from './pages/AIHealth'
 import Notification from './pages/Notification'
@@ -38,6 +40,8 @@ function App() {
           <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
           <Route path="/register" element={<Register />} />
           <Route path="/find-blood" element={isAuthenticated ? <FindBlood /> : <Navigate to="/login" />} />
+          <Route path="/blood-prediction" element={isAuthenticated ? <BloodPrediction /> : <Navigate to="/login" />} />
+          <Route path="/blood-request" element={isAuthenticated ? <BloodRequest /> : <Navigate to="/login" />} />
           <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
           <Route path="/ai-health" element={isAuthenticated ? <AIHealth /> : <Navigate to="/login" />} />
           <Route path="/notification" element={isAuthenticated ? <Notification /> : <Navigate to="/login" />} />
