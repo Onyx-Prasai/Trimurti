@@ -15,7 +15,13 @@ const FindBlood = () => {
   const [bloodBanks, setBloodBanks] = useState([])
   const [predictions, setPredictions] = useState([])
   const [stock, setStock] = useState([])
-  const [stockFilters, setStockFilters] = useState({ blood_group: '', city: '' })
+  const [stockFilters, setStockFilters] = useState({ 
+    blood_group: '', 
+    city: '', 
+    blood_product_type: '', 
+    sort_by: '', 
+    order: 'asc' 
+  })
   const [loading, setLoading] = useState(false)
   const [predictionsLoading, setPredictionsLoading] = useState(false)
   const [stockLoading, setStockLoading] = useState(false)
@@ -157,9 +163,19 @@ const FindBlood = () => {
                 className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
               >
                 <option value="">All Blood Groups</option>
-                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((type) => (
+                {bloodTypes.map((type) => (
                   <option key={type} value={type}>{type}</option>
                 ))}
+              </select>
+              <select
+                value={stockFilters.blood_product_type}
+                onChange={(e) => handleStockFilterChange('blood_product_type', e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="">All Product Types</option>
+                <option value="whole_blood">Whole Blood</option>
+                <option value="plasma">Plasma</option>
+                <option value="platelets">Platelets</option>
               </select>
               <input
                 type="text"
@@ -168,6 +184,25 @@ const FindBlood = () => {
                 placeholder="Filter by district"
                 className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
               />
+              <select
+                value={stockFilters.sort_by}
+                onChange={(e) => handleStockFilterChange('sort_by', e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="">Sort By</option>
+                <option value="hospital__name">Hospital Name</option>
+                <option value="blood_group">Blood Group</option>
+                <option value="blood_product_type">Product Type</option>
+                <option value="units_available">Units Available</option>
+              </select>
+              <select
+                value={stockFilters.order}
+                onChange={(e) => handleStockFilterChange('order', e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
               <button
                 onClick={fetchStock}
                 className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-xl hover:bg-red-600 transition-all"
@@ -190,6 +225,7 @@ const FindBlood = () => {
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Hospital</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">District</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Blood Group</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Product Type</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Units</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Updated</th>
                   </tr>
@@ -206,6 +242,11 @@ const FindBlood = () => {
                         <span className="px-3 py-1 bg-primary text-white rounded-full text-sm">
                           {item.blood_group}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {item.blood_product_type === 'whole_blood' ? 'Whole Blood' :
+                         item.blood_product_type === 'plasma' ? 'Plasma' :
+                         item.blood_product_type === 'platelets' ? 'Platelets' : 'Unknown'}
                       </td>
                       <td className="px-4 py-3 text-lg font-bold text-text">{item.units_available}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">

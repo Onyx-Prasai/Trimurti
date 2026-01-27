@@ -13,6 +13,7 @@ from .models import (
     StockAlert,
     DonationDrive,
     BLOOD_GROUP_CHOICES,
+    BLOOD_PRODUCT_CHOICES,
     MoneyReward,
     DiscountReward,
     DiscountRedemption,
