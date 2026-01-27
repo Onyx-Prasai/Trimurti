@@ -16,6 +16,7 @@ from .models import (
     BloodBankProfile,
     AdminProfile,
 )
+from api.models import DonorProfile
 from .serializers import (
     UserSerializer,
     UserRegisterSerializer,
