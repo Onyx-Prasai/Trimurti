@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FaUser, FaEdit, FaSave } from 'react-icons/fa'
+import { FaUser, FaEdit, FaSave, FaSignOutAlt } from 'react-icons/fa'
+import { useNavigate } from 'react-router-dom'
 import { getDonorProfile } from '../utils/api'
 
-const Profile = () => {
+const Profile = ({ setIsAuthenticated }) => {
   const [donor, setDonor] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -70,6 +72,13 @@ const Profile = () => {
     alert('Profile updated successfully!')
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setIsAuthenticated(false)
+    navigate('/')
+  }
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
@@ -96,23 +105,32 @@ const Profile = () => {
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-text">Personal Information</h2>
-            {!editing ? (
+            <div className="flex space-x-2">
+              {!editing ? (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex items-center space-x-2 bg-primary text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-all"
+                >
+                  <FaEdit />
+                  <span>Edit</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleSave}
+                  className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-all"
+                >
+                  <FaSave />
+                  <span>Save</span>
+                </button>
+              )}
               <button
-                onClick={() => setEditing(true)}
-                className="flex items-center space-x-2 bg-primary text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-all"
+                onClick={handleLogout}
+                className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition-all"
               >
-                <FaEdit />
-                <span>Edit</span>
+                <FaSignOutAlt />
+                <span>Logout</span>
               </button>
-            ) : (
-              <button
-                onClick={handleSave}
-                className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-all"
-              >
-                <FaSave />
-                <span>Save</span>
-              </button>
-            )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
