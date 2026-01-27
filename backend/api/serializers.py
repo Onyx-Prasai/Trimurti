@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from .models import (
     DonorProfile,
     HospitalReq,
@@ -13,12 +13,15 @@ from .models import (
     StockAlert,
     DonationDrive,
     BLOOD_GROUP_CHOICES,
+    BLOOD_PRODUCT_CHOICES,
     MoneyReward,
     DiscountReward,
     DiscountRedemption,
     MedicineReward,
     MedicineRedemption,
 )
+
+User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
