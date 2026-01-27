@@ -12,14 +12,28 @@ from django.db.models import Sum, Count, Q, Max
 from django.utils import timezone
 from datetime import timedelta
 from collections import defaultdict
+import math
 
 from .models import (
-    Hospital, BloodStock, Transaction, StockAlert, DonationDrive, BLOOD_GROUP_CHOICES
+    Hospital, BloodStock, Transaction, StockAlert, DonationDrive, BLOOD_GROUP_CHOICES, DonorProfile
 )
 from .serializers import (
     HospitalSerializer, BloodStockSerializer, TransactionSerializer,
-    StockAlertSerializer, DonationDriveSerializer
+    StockAlertSerializer, DonationDriveSerializer, NearbyDonorRequestSerializer
 )
+
+PRIORITY_CITIES = ['Kathmandu', 'Bhaktapur', 'Lalitpur', 'Pokhara']
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    """Return distance in kilometers between two lat/long points."""
+    r = 6371  # Earth radius in km
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    d_phi = math.radians(lat2 - lat1)
+    d_lambda = math.radians(lon2 - lon1)
+    a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return r * c
 
 
 class PublicBloodStockView(APIView):
@@ -282,6 +296,111 @@ class DonationDriveViewSet(viewsets.ModelViewSet):
         return Response(DonationDriveSerializer(drive).data)
 
 
+class NearbyDonorLocatorView(APIView):
+    """Locate consented donors near a hospital with critical vs normal radius rules."""
+
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        serializer = NearbyDonorRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        hospital_qs = Hospital.objects.filter(is_active=True)
+        if data.get('hospital_id'):
+            hospital_qs = hospital_qs.filter(id=data['hospital_id'])
+        if data.get('hospital_code'):
+            hospital_qs = hospital_qs.filter(code=data['hospital_code'])
+        hospital = hospital_qs.first()
+
+        if not hospital:
+            return Response({'error': 'Hospital not found or inactive'}, status=status.HTTP_404_NOT_FOUND)
+
+        if hospital.latitude is None or hospital.longitude is None:
+            return Response({'error': 'Hospital is missing location coordinates'}, status=status.HTTP_400_BAD_REQUEST)
+
+        start_radius = 0.5 if data['is_critical'] else 2.0
+        max_radius = data['max_radius_km']
+        step = data['radius_step_km']
+        min_needed = data['min_donor_count']
+
+        donor_qs = DonorProfile.objects.filter(
+            blood_group=data['blood_group'],
+            location_consent=True,
+            latitude__isnull=False,
+            longitude__isnull=False,
+        ).select_related('user')
+
+        limit_cities = data.get('limit_cities') or []
+        if limit_cities:
+            city_query = Q()
+            for city in limit_cities:
+                city_query |= Q(district__iexact=city)
+            donor_qs = donor_qs.filter(city_query)
+
+        hospital_lat = float(hospital.latitude)
+        hospital_lng = float(hospital.longitude)
+
+        candidates = []
+        for donor in donor_qs:
+            try:
+                donor_lat = float(donor.latitude)
+                donor_lng = float(donor.longitude)
+            except (TypeError, ValueError):
+                continue
+
+            if not donor.can_donate():
+                continue
+
+            distance = haversine_km(hospital_lat, hospital_lng, donor_lat, donor_lng)
+            candidates.append((distance, donor))
+
+        candidates.sort(key=lambda item: item[0])
+
+        radius = start_radius
+        selected = []
+        while radius <= max_radius:
+            selected = [
+                {
+                    'donor_id': donor.id,
+                    'username': donor.user.username,
+                    'district': donor.district,
+                    'blood_group': donor.blood_group,
+                    'distance_km': round(distance, 3),
+                    'phone': donor.phone,
+                    'last_donation_date': donor.last_donation_date,
+                }
+                for distance, donor in candidates
+                if distance <= radius
+            ]
+
+            if len(selected) >= min_needed or radius >= max_radius:
+                break
+
+            radius += step
+
+        radius_used = min(radius, max_radius)
+
+        return Response({
+            'hospital': HospitalSerializer(hospital).data,
+            'search': {
+                'start_radius_km': start_radius,
+                'max_radius_km': max_radius,
+                'step_km': step,
+                'radius_used_km': radius_used,
+                'is_critical': data['is_critical'],
+                'blood_group': data['blood_group'],
+                'blood_product': data['blood_product'],
+                'min_donor_count': min_needed,
+                'candidates_evaluated': len(candidates),
+                'limit_cities': limit_cities,
+            },
+            'donors_found': selected,
+            'count': len(selected),
+            'timestamp': timezone.now().isoformat(),
+        })
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def hospital_list_public(request):
@@ -328,6 +447,15 @@ def blood_stock_map_data(request):
     GET /api/v1/public/map-data
     """
     hospitals = Hospital.objects.filter(is_active=True).prefetch_related('stock')
+
+    cities_param = request.query_params.get('cities')
+    if cities_param:
+        city_list = [city.strip() for city in cities_param.split(',') if city.strip()]
+        if city_list:
+            city_query = Q()
+            for city in city_list:
+                city_query |= Q(city__iexact=city)
+            hospitals = hospitals.filter(city_query)
     
     map_data = []
     for hospital in hospitals:
@@ -355,5 +483,42 @@ def blood_stock_map_data(request):
     return Response({
         'hospitals': map_data,
         'count': len(map_data),
+        'timestamp': timezone.now().isoformat()
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def priority_hospitals(request):
+    """Return map-ready hospitals restricted to the four priority cities."""
+    city_query = Q()
+    for city in PRIORITY_CITIES:
+        city_query |= Q(city__iexact=city)
+
+    hospitals = Hospital.objects.filter(is_active=True).filter(city_query).prefetch_related('stock')
+
+    hospitals = hospitals.filter(latitude__isnull=False, longitude__isnull=False)
+
+    response_data = []
+    for hospital in hospitals:
+        stock_summary = {stock.blood_group: stock.units_available for stock in hospital.stock.all()}
+        response_data.append({
+            'id': str(hospital.id),
+            'code': hospital.code,
+            'name': hospital.name,
+            'city': hospital.city,
+            'address': hospital.address,
+            'position': {
+                'lat': float(hospital.latitude),
+                'lng': float(hospital.longitude)
+            },
+            'stock': stock_summary,
+            'total_units': sum(stock_summary.values()),
+        })
+
+    return Response({
+        'hospitals': response_data,
+        'count': len(response_data),
+        'cities': PRIORITY_CITIES,
         'timestamp': timezone.now().isoformat()
     })

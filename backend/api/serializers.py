@@ -13,6 +13,7 @@ from .models import (
     StockAlert,
     DonationDrive,
     BLOOD_GROUP_CHOICES,
+    BLOOD_PRODUCT_CHOICES,
 )
 
 
@@ -152,5 +153,25 @@ class PublicBloodStockSerializer(serializers.Serializer):
     hospital = HospitalSerializer()
     stock = serializers.DictField()
     last_updated = serializers.DateTimeField()
+
+
+class NearbyDonorRequestSerializer(serializers.Serializer):
+    """Validate donor locator requests with radius logic."""
+    hospital_id = serializers.UUIDField(required=False)
+    hospital_code = serializers.CharField(required=False, max_length=50)
+    blood_group = serializers.ChoiceField(choices=BLOOD_GROUP_CHOICES)
+    blood_product = serializers.ChoiceField(choices=BLOOD_PRODUCT_CHOICES, default='whole_blood')
+    is_critical = serializers.BooleanField(default=False)
+    max_radius_km = serializers.FloatField(default=20.0, min_value=0.5, max_value=50.0)
+    radius_step_km = serializers.FloatField(default=1.0, min_value=0.1, max_value=10.0)
+    min_donor_count = serializers.IntegerField(default=1, min_value=1)
+    limit_cities = serializers.ListField(
+        child=serializers.CharField(max_length=100), required=False, allow_empty=True
+    )
+
+    def validate(self, attrs):
+        if not attrs.get('hospital_id') and not attrs.get('hospital_code'):
+            raise serializers.ValidationError('Provide either hospital_id or hospital_code')
+        return attrs
 
 
