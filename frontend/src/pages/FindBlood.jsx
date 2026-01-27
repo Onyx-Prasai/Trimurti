@@ -570,6 +570,7 @@ const FindBlood = () => {
             </motion.div>
           </div>
         </div>
+        )}
         
         {/* Blood Prediction Section */}
         <motion.div
@@ -624,7 +625,6 @@ const FindBlood = () => {
             </div>
           )}
         </motion.div>
-        )}
       </div>
     </div>
   )
