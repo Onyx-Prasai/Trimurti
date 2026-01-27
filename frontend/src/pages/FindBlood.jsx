@@ -7,6 +7,7 @@ const FindBlood = () => {
   const [searchType, setSearchType] = useState('hospitals')
   const [filters, setFilters] = useState({
     blood_type: '',
+    blood_product: '',
     city: '',
     hospital_name: '',
   })
@@ -112,7 +113,23 @@ const FindBlood = () => {
   }
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-  const cities = ['Kathmandu', 'Bhaktapur', 'Lalitpur']
+  const districts = [
+    // Bagmati Province
+    'Kathmandu', 'Bhaktapur', 'Lalitpur', 'Kavre', 'Nuwakot', 'Rasuwa', 
+    'Sindhuli', 'Ramechhap', 'Dolakha', 'Makwanpur',
+    // Eastern Region
+    'Ilam', 'Jhapa', 'Morang', 'Sunsari', 'Dhankuta', 'Terhathum', 'Panchthar', 
+    'Udayapur', 'Sankhuwasabha', 'Sindhupalchok',
+    // Central Region
+    'Gorkha', 'Lamjung', 'Tanahu', 'Chitwan', 'Nawalpur', 'Parsa', 'Bara', 
+    'Rautahat', 'Gulmi', 'Arghakhanchi',
+    // Western Region
+    'Palpa', 'Dang', 'Banke', 'Bardiya', 'Surkhet',
+    // Mid-Western Region
+    'Salyan', 'Pyuthan', 'Rolpa', 'Rukum', 'Dailekh', 'Jumla', 'Kalikot', 'Dolpa',
+    // Far-Western Region
+    'Jajarkot', 'Achham', 'Bajura', 'Bajhang', 'Doti', 'Kailali', 'Kanchanpur'
+  ]
 
   return (
     <div className="min-h-screen py-8">
@@ -148,7 +165,7 @@ const FindBlood = () => {
                 type="text"
                 value={stockFilters.city}
                 onChange={(e) => handleStockFilterChange('city', e.target.value)}
-                placeholder="Filter by city"
+                placeholder="Filter by district"
                 className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
               />
               <button
@@ -171,7 +188,7 @@ const FindBlood = () => {
                 <thead>
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Hospital</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">City</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">District</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Blood Group</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Units</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Updated</th>
@@ -234,7 +251,7 @@ const FindBlood = () => {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl p-6 shadow-lg mb-8"
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-text mb-2">
                 Blood Type
@@ -253,16 +270,32 @@ const FindBlood = () => {
 
             <div>
               <label className="block text-sm font-medium text-text mb-2">
-                City
+                Product Type
+              </label>
+              <select
+                value={filters.blood_product}
+                onChange={(e) => handleFilterChange('blood_product', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="">All Products</option>
+                <option value="whole_blood">Whole Blood</option>
+                <option value="plasma">Plasma</option>
+                <option value="platelets">Platelets</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text mb-2">
+                District
               </label>
               <select
                 value={filters.city}
                 onChange={(e) => handleFilterChange('city', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
               >
-                <option value="">All Cities</option>
-                {cities.map((city) => (
-                  <option key={city} value={city}>{city}</option>
+                <option value="">All Districts</option>
+                {districts.map((district) => (
+                  <option key={district} value={district}>{district}</option>
                 ))}
               </select>
             </div>
@@ -313,10 +346,15 @@ const FindBlood = () => {
                           <div className="flex items-center space-x-4 text-sm text-text opacity-70">
                             <span className="flex items-center">
                               <FaMapMarkerAlt className="mr-2" />
-                              {hospital.city}
+                              {hospital.district}
                             </span>
                             <span className="px-3 py-1 bg-primary text-white rounded-full">
                               {hospital.blood_type_needed}
+                            </span>
+                            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                              {hospital.blood_product_needed === 'whole_blood' ? 'Whole Blood' :
+                               hospital.blood_product_needed === 'plasma' ? 'Plasma' :
+                               hospital.blood_product_needed === 'platelets' ? 'Platelets' : 'Unknown'}
                             </span>
                             {hospital.is_critical && (
                               <span className="flex items-center text-primary">
@@ -478,11 +516,16 @@ const FindBlood = () => {
                     <FaUniversity className="text-xl text-text opacity-70 mr-3" />
                     <h3 className="text-lg font-semibold text-text">{pred.hospital_name}</h3>
                   </div>
-                  <p className="text-sm text-text opacity-70 mb-4">{pred.city}</p>
+                  <p className="text-sm text-text opacity-70 mb-4">{pred.district}</p>
                   
                   <div className="text-center my-4">
                     <p className="text-sm text-text mb-1">Predicted Need</p>
                     <p className="text-4xl font-bold text-primary">{pred.predicted_blood_type}</p>
+                    <p className="text-xs text-text opacity-60 mt-2">
+                      {pred.predicted_blood_product === 'whole_blood' ? 'Whole Blood' :
+                       pred.predicted_blood_product === 'plasma' ? 'Plasma' :
+                       pred.predicted_blood_product === 'platelets' ? 'Platelets' : 'Unknown'}
+                    </p>
                   </div>
 
                   <div className="text-center">

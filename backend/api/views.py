@@ -106,10 +106,15 @@ class HospitalReqViewSet(viewsets.ModelViewSet):
         if blood_type:
             queryset = queryset.filter(blood_type_needed=blood_type)
         
-        # Filter by city
-        city = self.request.query_params.get('city', None)
-        if city:
-            queryset = queryset.filter(city=city)
+        # Filter by blood product
+        blood_product = self.request.query_params.get('blood_product', None)
+        if blood_product:
+            queryset = queryset.filter(blood_product_needed=blood_product)
+        
+        # Filter by district (city parameter for backwards compatibility)
+        district = self.request.query_params.get('city', None)
+        if district:
+            queryset = queryset.filter(district=district)
         
         # Filter by hospital name
         hospital_name = self.request.query_params.get('hospital_name', None)

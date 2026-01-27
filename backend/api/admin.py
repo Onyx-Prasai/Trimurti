@@ -4,22 +4,22 @@ from .models import DonorProfile, HospitalReq, BloodBank, Donation, StoreItem, R
 
 @admin.register(DonorProfile)
 class DonorProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'blood_group', 'points', 'total_donations', 'city']
-    list_filter = ['blood_group', 'city']
+    list_display = ['user', 'blood_group', 'points', 'total_donations', 'district']
+    list_filter = ['blood_group', 'district']
     search_fields = ['user__username', 'user__email']
 
 
 @admin.register(HospitalReq)
 class HospitalReqAdmin(admin.ModelAdmin):
-    list_display = ['hospital_name', 'city', 'blood_type_needed', 'is_critical', 'fulfilled']
-    list_filter = ['city', 'blood_type_needed', 'is_critical', 'fulfilled']
+    list_display = ['hospital_name', 'district', 'blood_type_needed', 'is_critical', 'fulfilled']
+    list_filter = ['district', 'blood_type_needed', 'is_critical', 'fulfilled']
     search_fields = ['hospital_name']
 
 
 @admin.register(BloodBank)
 class BloodBankAdmin(admin.ModelAdmin):
-    list_display = ['name', 'city', 'phone']
-    list_filter = ['city']
+    list_display = ['name', 'district', 'phone']
+    list_filter = ['district']
     search_fields = ['name']
 
 
