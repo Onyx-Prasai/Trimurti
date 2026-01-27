@@ -1,7 +1,9 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
 
 from .models import (
     User,
@@ -11,11 +13,61 @@ from .models import (
 )
 from .serializers import (
     UserSerializer,
-    UserCreateSerializer,
+    UserRegisterSerializer,
+    UserLoginSerializer,
     HospitalProfileSerializer,
     BloodBankProfileSerializer,
     AdminProfileSerializer,
 )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    """
+    API endpoint for user login
+    """
+    serializer = UserLoginSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+        
+        user = authenticate(username=username, password=password)
+        
+        if user is not None:
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({
+                'token': token.key,
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'detail': 'Invalid credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_view(request):
+    """
+    API endpoint for user registration
+    """
+    serializer = UserRegisterSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        user = serializer.save()
+        token, created = Token.objects.get_or_create(user=user)
+        
+        return Response({
+            'token': token.key,
+            'user': UserSerializer(user).data,
+            'message': 'User registered successfully'
+        }, status=status.HTTP_201_CREATED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -27,11 +79,11 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'create':
-            return UserCreateSerializer
+            return UserRegisterSerializer
         return UserSerializer
 
     def get_permissions(self):
-        if self.action == 'create':
+        if self.action in ['create', 'register']:
             permission_classes = [AllowAny]
         else:
             permission_classes = [IsAuthenticated]
@@ -105,10 +157,7 @@ class AdminProfileViewSet(viewsets.ModelViewSet):
         return AdminProfile.objects.all()
 
 
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-from .models import User
+
 
 
 def login_view(request):
