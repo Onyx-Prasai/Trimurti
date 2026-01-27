@@ -14,6 +14,12 @@ BLOOD_GROUP_CHOICES = [
     ('O-', 'O-'),
 ]
 
+BLOOD_PRODUCT_CHOICES = [
+    ('whole_blood', 'Whole Blood'),
+    ('plasma', 'Plasma'),
+    ('platelets', 'Platelets'),
+]
+
 
 class DonorProfile(models.Model):
     BLOOD_GROUPS = [
@@ -27,8 +33,68 @@ class DonorProfile(models.Model):
         ('O-', 'O-'),
     ]
     
+    DISTRICTS = [
+        # Bagmati Province
+        ('Kathmandu', 'Kathmandu'),
+        ('Bhaktapur', 'Bhaktapur'),
+        ('Lalitpur', 'Lalitpur'),
+        ('Kavre', 'Kavre'),
+        ('Nuwakot', 'Nuwakot'),
+        ('Rasuwa', 'Rasuwa'),
+        ('Sindhuli', 'Sindhuli'),
+        ('Ramechhap', 'Ramechhap'),
+        ('Dolakha', 'Dolakha'),
+        ('Makwanpur', 'Makwanpur'),
+        # Eastern Region
+        ('Ilam', 'Ilam'),
+        ('Jhapa', 'Jhapa'),
+        ('Morang', 'Morang'),
+        ('Sunsari', 'Sunsari'),
+        ('Dhankuta', 'Dhankuta'),
+        ('Terhathum', 'Terhathum'),
+        ('Panchthar', 'Panchthar'),
+        ('Udayapur', 'Udayapur'),
+        ('Sankhuwasabha', 'Sankhuwasabha'),
+        ('Sindhupalchok', 'Sindhupalchok'),
+        # Central Region
+        ('Gorkha', 'Gorkha'),
+        ('Lamjung', 'Lamjung'),
+        ('Tanahu', 'Tanahu'),
+        ('Chitwan', 'Chitwan'),
+        ('Nawalpur', 'Nawalpur'),
+        ('Parsa', 'Parsa'),
+        ('Bara', 'Bara'),
+        ('Rautahat', 'Rautahat'),
+        ('Gulmi', 'Gulmi'),
+        ('Arghakhanchi', 'Arghakhanchi'),
+        # Western Region
+        ('Palpa', 'Palpa'),
+        ('Dang', 'Dang'),
+        ('Banke', 'Banke'),
+        ('Bardiya', 'Bardiya'),
+        ('Surkhet', 'Surkhet'),
+        # Mid-Western Region
+        ('Salyan', 'Salyan'),
+        ('Pyuthan', 'Pyuthan'),
+        ('Rolpa', 'Rolpa'),
+        ('Rukum', 'Rukum'),
+        ('Dailekh', 'Dailekh'),
+        ('Jumla', 'Jumla'),
+        ('Kalikot', 'Kalikot'),
+        ('Dolpa', 'Dolpa'),
+        # Far-Western Region
+        ('Jajarkot', 'Jajarkot'),
+        ('Achham', 'Achham'),
+        ('Bajura', 'Bajura'),
+        ('Bajhang', 'Bajhang'),
+        ('Doti', 'Doti'),
+        ('Kailali', 'Kailali'),
+        ('Kanchanpur', 'Kanchanpur'),
+    ]
+    
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='donor_profile')
     blood_group = models.CharField(max_length=3, choices=BLOOD_GROUPS)
+    blood_product_type = models.CharField(max_length=20, choices=BLOOD_PRODUCT_CHOICES, default='whole_blood')
     points = models.IntegerField(default=0)
     last_donation_date = models.DateField(null=True, blank=True)
     referral_code = models.CharField(max_length=20, unique=True, default=uuid.uuid4)
@@ -36,7 +102,7 @@ class DonorProfile(models.Model):
     total_donations = models.IntegerField(default=0)
     phone = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
-    city = models.CharField(max_length=100, default='Kathmandu')
+    district = models.CharField(max_length=100, choices=DISTRICTS, default='Kathmandu')
     created_at = models.DateTimeField(auto_now_add=True)
     
     def can_donate(self):
@@ -82,16 +148,71 @@ class HospitalReq(models.Model):
         ('O-', 'O-'),
     ]
     
-    CITIES = [
+    DISTRICTS = [
+        # Bagmati Province
         ('Kathmandu', 'Kathmandu'),
         ('Bhaktapur', 'Bhaktapur'),
         ('Lalitpur', 'Lalitpur'),
+        ('Kavre', 'Kavre'),
+        ('Nuwakot', 'Nuwakot'),
+        ('Rasuwa', 'Rasuwa'),
+        ('Sindhuli', 'Sindhuli'),
+        ('Ramechhap', 'Ramechhap'),
+        ('Dolakha', 'Dolakha'),
+        ('Makwanpur', 'Makwanpur'),
+        # Eastern Region
+        ('Ilam', 'Ilam'),
+        ('Jhapa', 'Jhapa'),
+        ('Morang', 'Morang'),
+        ('Sunsari', 'Sunsari'),
+        ('Dhankuta', 'Dhankuta'),
+        ('Terhathum', 'Terhathum'),
+        ('Panchthar', 'Panchthar'),
+        ('Udayapur', 'Udayapur'),
+        ('Sankhuwasabha', 'Sankhuwasabha'),
+        # Central Region
+        ('Nuwakot', 'Nuwakot'),
+        ('Sindhupalchok', 'Sindhupalchok'),
+        ('Gorkha', 'Gorkha'),
+        ('Lamjung', 'Lamjung'),
+        ('Tanahu', 'Tanahu'),
+        ('Chitwan', 'Chitwan'),
+        ('Nawalpur', 'Nawalpur'),
+        ('Parsa', 'Parsa'),
+        ('Bara', 'Bara'),
+        ('Rautahat', 'Rautahat'),
+        # Western Region
+        ('Gulmi', 'Gulmi'),
+        ('Arghakhanchi', 'Arghakhanchi'),
+        ('Palpa', 'Palpa'),
+        ('Dang', 'Dang'),
+        ('Banke', 'Banke'),
+        ('Bardiya', 'Bardiya'),
+        ('Surkhet', 'Surkhet'),
+        # Mid-Western Region
+        ('Salyan', 'Salyan'),
+        ('Pyuthan', 'Pyuthan'),
+        ('Rolpa', 'Rolpa'),
+        ('Rukum', 'Rukum'),
+        ('Dailekh', 'Dailekh'),
+        ('Jumla', 'Jumla'),
+        ('Kalikot', 'Kalikot'),
+        ('Dolpa', 'Dolpa'),
+        # Far-Western Region
+        ('Jajarkot', 'Jajarkot'),
+        ('Achham', 'Achham'),
+        ('Bajura', 'Bajura'),
+        ('Bajhang', 'Bajhang'),
+        ('Doti', 'Doti'),
+        ('Kailali', 'Kailali'),
+        ('Kanchanpur', 'Kanchanpur'),
     ]
     
     hospital_id = models.CharField(max_length=50, unique=True)
     hospital_name = models.CharField(max_length=200)
-    city = models.CharField(max_length=100, choices=CITIES)
+    district = models.CharField(max_length=100, choices=DISTRICTS, default='Kathmandu')
     blood_type_needed = models.CharField(max_length=3, choices=BLOOD_GROUPS)
+    blood_product_needed = models.CharField(max_length=20, choices=BLOOD_PRODUCT_CHOICES, default='whole_blood')
     units_needed = models.IntegerField(default=1)
     is_critical = models.BooleanField(default=False)
     contact_phone = models.CharField(max_length=15)
@@ -106,8 +227,67 @@ class HospitalReq(models.Model):
 
 
 class BloodBank(models.Model):
+    DISTRICTS = [
+        # Bagmati Province
+        ('Kathmandu', 'Kathmandu'),
+        ('Bhaktapur', 'Bhaktapur'),
+        ('Lalitpur', 'Lalitpur'),
+        ('Kavre', 'Kavre'),
+        ('Nuwakot', 'Nuwakot'),
+        ('Rasuwa', 'Rasuwa'),
+        ('Sindhuli', 'Sindhuli'),
+        ('Ramechhap', 'Ramechhap'),
+        ('Dolakha', 'Dolakha'),
+        ('Makwanpur', 'Makwanpur'),
+        # Eastern Region
+        ('Ilam', 'Ilam'),
+        ('Jhapa', 'Jhapa'),
+        ('Morang', 'Morang'),
+        ('Sunsari', 'Sunsari'),
+        ('Dhankuta', 'Dhankuta'),
+        ('Terhathum', 'Terhathum'),
+        ('Panchthar', 'Panchthar'),
+        ('Udayapur', 'Udayapur'),
+        ('Sankhuwasabha', 'Sankhuwasabha'),
+        ('Sindhupalchok', 'Sindhupalchok'),
+        # Central Region
+        ('Gorkha', 'Gorkha'),
+        ('Lamjung', 'Lamjung'),
+        ('Tanahu', 'Tanahu'),
+        ('Chitwan', 'Chitwan'),
+        ('Nawalpur', 'Nawalpur'),
+        ('Parsa', 'Parsa'),
+        ('Bara', 'Bara'),
+        ('Rautahat', 'Rautahat'),
+        ('Gulmi', 'Gulmi'),
+        ('Arghakhanchi', 'Arghakhanchi'),
+        # Western Region
+        ('Palpa', 'Palpa'),
+        ('Dang', 'Dang'),
+        ('Banke', 'Banke'),
+        ('Bardiya', 'Bardiya'),
+        ('Surkhet', 'Surkhet'),
+        # Mid-Western Region
+        ('Salyan', 'Salyan'),
+        ('Pyuthan', 'Pyuthan'),
+        ('Rolpa', 'Rolpa'),
+        ('Rukum', 'Rukum'),
+        ('Dailekh', 'Dailekh'),
+        ('Jumla', 'Jumla'),
+        ('Kalikot', 'Kalikot'),
+        ('Dolpa', 'Dolpa'),
+        # Far-Western Region
+        ('Jajarkot', 'Jajarkot'),
+        ('Achham', 'Achham'),
+        ('Bajura', 'Bajura'),
+        ('Bajhang', 'Bajhang'),
+        ('Doti', 'Doti'),
+        ('Kailali', 'Kailali'),
+        ('Kanchanpur', 'Kanchanpur'),
+    ]
+    
     name = models.CharField(max_length=200)
-    city = models.CharField(max_length=100)
+    district = models.CharField(max_length=100, choices=DISTRICTS, default='Kathmandu')
     address = models.TextField()
     phone = models.CharField(max_length=15)
     email = models.EmailField(blank=True)
@@ -313,13 +493,87 @@ class BloodStock(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE, related_name='stock')
     blood_group = models.CharField(max_length=3, choices=BLOOD_GROUP_CHOICES)
+    blood_product_type = models.CharField(max_length=20, choices=BLOOD_PRODUCT_CHOICES, default='whole_blood')
     units_available = models.IntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('hospital', 'blood_group')
+        unique_together = ('hospital', 'blood_group', 'blood_product_type')
         ordering = ['hospital__name', 'blood_group']
 
     def __str__(self):
-        return f"{self.hospital.code} {self.blood_group}: {self.units_available}"
+        product_display = dict(BLOOD_PRODUCT_CHOICES).get(self.blood_product_type, self.blood_product_type)
+        return f"{self.hospital.code} {self.blood_group} ({product_display}): {self.units_available}"
+
+
+class StockAlert(models.Model):
+    """Track low stock alerts for hospitals."""
+    ALERT_LEVELS = [
+        ('low', 'Low'),
+        ('critical', 'Critical'),
+        ('emergency', 'Emergency'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE, related_name='alerts')
+    blood_group = models.CharField(max_length=3, choices=BLOOD_GROUP_CHOICES)
+    alert_level = models.CharField(max_length=20, choices=ALERT_LEVELS)
+    threshold = models.IntegerField()
+    current_units = models.IntegerField()
+    triggered_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    notified = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-triggered_at']
+    
+    def __str__(self):
+        return f"{self.hospital.code} {self.blood_group} - {self.alert_level}"
+    
+    @property
+    def is_resolved(self):
+        return self.resolved_at is not None
+
+
+class DonationDrive(models.Model):
+    """Suggested or planned blood donation campaigns."""
+    URGENCY_LEVELS = [
+        ('normal', 'Normal'),
+        ('urgent', 'Urgent'),
+        ('critical', 'Critical'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('planned', 'Planned'),
+        ('active', 'Active'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=200)
+    city = models.CharField(max_length=100)
+    blood_groups = models.JSONField(help_text="List of blood groups needed, e.g., ['O+', 'A-']")
+    urgency = models.CharField(max_length=20, choices=URGENCY_LEVELS)
+    target_units = models.IntegerField()
+    collected_units = models.IntegerField(default=0)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planned')
+    description = models.TextField(blank=True)
+    location = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-start_date']
+    
+    def __str__(self):
+        return f"{self.title} - {self.city}"
+    
+    @property
+    def progress_percentage(self):
+        if self.target_units == 0:
+            return 0
+        return min(100, (self.collected_units / self.target_units) * 100)
 

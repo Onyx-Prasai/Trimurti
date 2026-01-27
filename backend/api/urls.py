@@ -9,6 +9,11 @@ from .reward_views import (
     MoneyRewardViewSet, DiscountRewardViewSet, DiscountRedemptionViewSet,
     MedicineRewardViewSet, MedicineRedemptionViewSet,
 )
+from .bloodsync_views import (
+    PublicBloodStockView, BloodAvailabilityByCityView, AdminAnalyticsView,
+    StockAlertViewSet, DonationDriveViewSet, hospital_list_public,
+    check_stock_alerts, blood_stock_map_data,
+)
 
 router = DefaultRouter()
 router.register(r'donors', DonorProfileViewSet, basename='donor')
@@ -27,9 +32,28 @@ router.register(r'rewards/discount-redemptions', DiscountRedemptionViewSet, base
 router.register(r'rewards/medicine', MedicineRewardViewSet, basename='medicine-reward')
 router.register(r'rewards/medicine-redemptions', MedicineRedemptionViewSet, basename='medicine-redemption')
 
+# BloodSync Nepal specific endpoints
+router.register(r'alerts', StockAlertViewSet, basename='alert')
+router.register(r'donation-drives', DonationDriveViewSet, basename='donation-drive')
+
 urlpatterns = [
     path('', include(router.urls)),
-    path('ingest/transactions/', TransactionIngestView.as_view(), name='ingest-transaction'),
+    
+    # Hospital Integration API (Protected)
+    path('v1/ingest/transaction/', TransactionIngestView.as_view(), name='ingest-transaction'),
+    
+    # Public Query API
+    path('v1/public/blood-stock/', PublicBloodStockView.as_view(), name='public-blood-stock'),
+    path('v1/public/blood-availability/<str:city>/', BloodAvailabilityByCityView.as_view(), name='blood-availability-city'),
+    path('v1/public/hospitals/', hospital_list_public, name='public-hospitals'),
+    path('v1/public/map-data/', blood_stock_map_data, name='map-data'),
+    
+    # Admin API (Protected)
+    path('v1/admin/analytics/national/', AdminAnalyticsView.as_view(), name='admin-analytics'),
+    path('v1/admin/check-alerts/', check_stock_alerts, name='check-alerts'),
+    
+    # Legacy endpoints
+    path('ingest/transactions/', TransactionIngestView.as_view(), name='ingest-transaction-legacy'),
     path('stock/', StockView.as_view(), name='stock'),
 ]
 

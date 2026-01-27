@@ -1,10 +1,10 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.views import APIView
 from django.db import transaction as db_transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum
 from django.utils import timezone
 from datetime import timedelta
 from .models import (
@@ -17,12 +17,15 @@ from .models import (
     Hospital,
     BloodStock,
     Transaction,
+    StockAlert,
+    DonationDrive,
 )
 from .serializers import (
     DonorProfileSerializer, HospitalReqSerializer, BloodBankSerializer,
     DonationSerializer, StoreItemSerializer, RedemptionSerializer,
     HospitalSerializer, BloodStockSerializer, TransactionSerializer,
-    IngestTransactionSerializer,
+    IngestTransactionSerializer, StockAlertSerializer, DonationDriveSerializer,
+    PublicBloodStockSerializer,
 )
 from .prediction import predict_blood_needs
 from django.conf import settings
@@ -106,10 +109,15 @@ class HospitalReqViewSet(viewsets.ModelViewSet):
         if blood_type:
             queryset = queryset.filter(blood_type_needed=blood_type)
         
-        # Filter by city
-        city = self.request.query_params.get('city', None)
-        if city:
-            queryset = queryset.filter(city=city)
+        # Filter by blood product
+        blood_product = self.request.query_params.get('blood_product', None)
+        if blood_product:
+            queryset = queryset.filter(blood_product_needed=blood_product)
+        
+        # Filter by district (city parameter for backwards compatibility)
+        district = self.request.query_params.get('city', None)
+        if district:
+            queryset = queryset.filter(district=district)
         
         # Filter by hospital name
         hospital_name = self.request.query_params.get('hospital_name', None)

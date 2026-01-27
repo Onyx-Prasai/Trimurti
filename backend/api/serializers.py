@@ -10,6 +10,8 @@ from .models import (
     Hospital,
     BloodStock,
     Transaction,
+    StockAlert,
+    DonationDrive,
     BLOOD_GROUP_CHOICES,
     MoneyReward,
     DiscountReward,
@@ -126,7 +128,6 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class IngestTransactionSerializer(serializers.Serializer):
-    hospital_id = serializers.UUIDField()
     blood_group = serializers.ChoiceField(choices=BLOOD_GROUP_CHOICES)
     units_change = serializers.IntegerField()
     timestamp = serializers.DateTimeField()
@@ -191,3 +192,26 @@ class MedicineRedemptionSerializer(serializers.ModelSerializer):
                   'points_used', 'redeemed_at', 'delivery_address', 'delivery_phone', 'status']
         read_only_fields = ['id', 'redeemed_at']
 
+
+class StockAlertSerializer(serializers.ModelSerializer):
+    hospital = HospitalSerializer(read_only=True)
+    is_resolved = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = StockAlert
+        fields = '__all__'
+
+
+class DonationDriveSerializer(serializers.ModelSerializer):
+    progress_percentage = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = DonationDrive
+        fields = '__all__'
+
+
+class PublicBloodStockSerializer(serializers.Serializer):
+    """Serializer for public blood stock query results."""
+    hospital = HospitalSerializer()
+    stock = serializers.DictField()
+    last_updated = serializers.DateTimeField()

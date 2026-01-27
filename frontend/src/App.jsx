@@ -7,6 +7,7 @@ import AIHealth from './pages/AIHealth'
 import Notification from './pages/Notification'
 import Points from './pages/Points'
 import Profile from './pages/Profile'
+import BloodStockDashboard from './pages/BloodStockDashboard'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/notification" element={<Notification />} />
           <Route path="/points" element={<Points />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/blood-stock" element={<BloodStockDashboard />} />
         </Routes>
       </div>
     </Router>

@@ -2,70 +2,201 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BloodSync Nepal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
         }
-        .container {
-            width: 350px;
-            margin: 100px auto;
-            padding: 25px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
         }
-        h2 {
-            text-align: center;
+        
+        .pulse-animation {
+            animation: pulse 2s ease-in-out infinite;
         }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
         }
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
+        
+        .input-focus:focus {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+            outline: none;
         }
-        button:hover {
-            background: #0056b3;
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            transition: all 0.3s ease;
         }
-        .link {
-            text-align: center;
-            margin-top: 10px;
-        }
-        .error {
-            color: red;
-            text-align: center;
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.3);
         }
     </style>
 </head>
-<body>
-
-<div class="container">
-    <h2>Login</h2>
-
-    {% if error %}
-        <p class="error">{{ error }}</p>
-    {% endif %}
-
-    <form method="post">
-        {% csrf_token %}
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-
-        <button type="submit">Login</button>
-    </form>
-
-    <div class="link">
-        <p>Don't have an account? <a href="{% url 'register' %}">Register</a></p>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
+        <!-- Left Side - Branding -->
+        <div class="hidden md:block bg-gradient-primary text-white rounded-3xl p-12 shadow-2xl">
+            <div class="space-y-6">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-12 h-12 pulse-animation" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+                    </svg>
+                    <h1 class="text-4xl font-bold">BloodSync Nepal</h1>
+                </div>
+                
+                <h2 class="text-2xl font-semibold">Save Lives, One Drop at a Time</h2>
+                
+                <p class="text-lg opacity-90">
+                    Join thousands of heroes making a difference across Nepal. Real-time blood inventory management for a healthier tomorrow.
+                </p>
+                
+                <div class="space-y-4 pt-8">
+                    <div class="flex items-start space-x-3">
+                        <svg class="w-6 h-6 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <h3 class="font-semibold">Real-Time Tracking</h3>
+                            <p class="text-sm opacity-80">Live blood inventory updates from hospitals nationwide</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-3">
+                        <svg class="w-6 h-6 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <h3 class="font-semibold">Secure & Private</h3>
+                            <p class="text-sm opacity-80">Compliant with Nepal National Blood Policy</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-3">
+                        <svg class="w-6 h-6 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <h3 class="font-semibold">Nationwide Network</h3>
+                            <p class="text-sm opacity-80">Connected with blood banks across Nepal</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side - Login Form -->
+        <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h2>
+                <p class="text-gray-600">Sign in to access your BloodSync account</p>
+            </div>
+            
+            {% if error %}
+                <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg" role="alert">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="font-medium">{{ error }}</span>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <div>
+                    <label for="username" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Username
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <input 
+                            type="text" 
+                            name="username" 
+                            id="username"
+                            placeholder="Enter your username" 
+                            required
+                            class="input-focus w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl transition-all"
+                        >
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Password
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <input 
+                            type="password" 
+                            name="password" 
+                            id="password"
+                            placeholder="Enter your password" 
+                            required
+                            class="input-focus w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl transition-all"
+                        >
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center">
+                        <input type="checkbox" class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                        <span class="ml-2 text-sm text-gray-600">Remember me</span>
+                    </label>
+                    <a href="#" class="text-sm font-medium text-red-600 hover:text-red-700">
+                        Forgot password?
+                    </a>
+                </div>
+                
+                <button 
+                    type="submit" 
+                    class="btn-primary w-full py-3 px-4 text-white font-semibold rounded-xl shadow-lg"
+                >
+                    Sign In
+                </button>
+            </form>
+            
+            <div class="mt-8 text-center">
+                <p class="text-gray-600">
+                    Don't have an account? 
+                    <a href="{% url 'register' %}" class="font-semibold text-red-600 hover:text-red-700">
+                        Create Account
+                    </a>
+                </p>
+            </div>
+            
+            <!-- Mobile Branding -->
+            <div class="mt-8 md:hidden text-center pt-8 border-t border-gray-200">
+                <div class="flex items-center justify-center space-x-2 mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-xl font-bold text-gray-800">BloodSync Nepal</span>
+                </div>
+                <p class="text-sm text-gray-600">
+                    Real-time blood inventory management
+                </p>
+            </div>
+        </div>
     </div>
-</div>
-
 </body>
 </html>
