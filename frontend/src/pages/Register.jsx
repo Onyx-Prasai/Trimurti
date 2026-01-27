@@ -55,7 +55,10 @@ export default function Register() {
       console.log('Registration response:', data);
 
       if (response.ok) {
-        navigate('/login');
+        // Save token and user data to localStorage
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        navigate('/profile');
       } else {
         // Handle both single detail errors and field-level errors
         if (data.detail) {

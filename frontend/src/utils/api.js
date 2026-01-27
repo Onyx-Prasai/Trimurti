@@ -9,6 +9,15 @@ const api = axios.create({
   },
 })
 
+// Add token to requests if it exists
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+  }
+  return config
+})
+
 // Donor API
 export const getDonorStats = () => api.get('/donors/stats/')
 export const getDonorProfile = (id) => api.get(`/donors/${id}/`)
