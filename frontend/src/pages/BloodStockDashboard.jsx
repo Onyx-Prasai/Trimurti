@@ -27,7 +27,7 @@ const BloodStockDashboard = () => {
       if (filters.minUnits > 0) queryParams.append('min_units', filters.minUnits)
 
       const response = await fetch(
-        `http://localhost:8000/api/v1/public/blood-stock/?${queryParams}`
+        `/api/v1/public/blood-stock/?${queryParams}`
       )
       const data = await response.json()
       
