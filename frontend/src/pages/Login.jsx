@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BloodGroupModal from '../components/BloodGroupModal';
 
 export default function Login({ setIsAuthenticated }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showBloodGroupModal, setShowBloodGroupModal] = useState(false);
+  const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -31,8 +34,11 @@ export default function Login({ setIsAuthenticated }) {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        setUserData(data);
         setIsAuthenticated(true);
-        navigate('/dashboard');
+        
+        // Show blood group modal instead of navigating immediately
+        setShowBloodGroupModal(true);
       } else {
         setError(data.detail || 'Login failed. Please try again.');
       }
@@ -44,8 +50,52 @@ export default function Login({ setIsAuthenticated }) {
     }
   };
 
+  const handleBloodGroupSubmit = async (bloodGroup) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Update user's blood group in the backend
+      const response = await fetch('/api/donor-profile/update-blood-group/', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`,
+        },
+        body: JSON.stringify({
+          blood_group: bloodGroup,
+        }),
+      });
+
+      if (response.ok) {
+        console.log('Blood group saved successfully');
+        setShowBloodGroupModal(false);
+        navigate('/dashboard');
+      } else {
+        console.error('Failed to save blood group');
+        alert('Failed to save blood group. Proceeding anyway...');
+        setShowBloodGroupModal(false);
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error saving blood group:', error);
+      // Proceed even if saving fails
+      setShowBloodGroupModal(false);
+      navigate('/dashboard');
+    }
+  };
+
   return (
-    <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4">
+    <>
+      <BloodGroupModal
+        isOpen={showBloodGroupModal}
+        onClose={() => {
+          setShowBloodGroupModal(false);
+          navigate('/dashboard');
+        }}
+        onSubmit={handleBloodGroupSubmit}
+      />
+      
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
         {/* Left Side - Branding */}
         <div className="hidden md:block bg-gradient-to-r from-red-600 to-red-400 text-white rounded-3xl p-12 shadow-2xl">
@@ -241,6 +291,6 @@ export default function Login({ setIsAuthenticated }) {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

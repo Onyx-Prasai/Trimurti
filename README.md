@@ -25,6 +25,7 @@ A comprehensive, privacy-compliant platform that automatically collects and disp
 - 🔔 **Notifications**: Get alerts for critical blood needs
 - 🎁 **Points & Rewards**: Earn points for donations, redeem items, and refer friends
 - 👤 **Profile**: Manage personal information and view statistics
+- 🩸 **Blood Group Selection**: Modal popup after login to collect blood group information (A+, A-, B+, B-, AB+, AB-, O+, O-)
 
 ---
 
@@ -445,7 +446,6 @@ curl -X POST http://localhost:8000/api/v1/ingest/transaction/ \
 ## 📚 Documentation
 
 - **[System Architecture](BLOODSYNC_ARCHITECTURE.md)**: Complete technical design
-- **[Development Roadmap](DEVELOPMENT_ROADMAP.md)**: Project timeline and milestones
 - **[Hospital Integration Guide](HOSPITAL_INTEGRATION_GUIDE.md)**: API integration instructions
 - **[Setup Guide](SETUP.md)**: Original setup documentation
 
@@ -505,6 +505,41 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 *Last Updated: January 27, 2026*
 *Version: 2.0.0*
+
+## Blood Group Selection Feature
+
+### Overview
+A modal popup appears after user login to collect blood group information. This enhances user onboarding and ensures critical health data is captured.
+
+### User Experience
+1. **After Login**: User successfully authenticates
+2. **Modal Appears**: Beautiful red-themed modal with blood group options
+3. **Selection**: User selects from 8 blood groups (A+, A-, B+, B-, AB+, AB-, O+, O-)
+4. **Action**: User can either:
+   - Click **"Submit"** to save blood group and proceed to dashboard
+   - Click **"Do It Later"** to skip and proceed to dashboard
+5. **Future Update**: User can update blood group anytime from profile settings
+
+### Implementation Details
+
+**Frontend Components:**
+- `frontend/src/components/BloodGroupModal.jsx` - Modal component with:
+  - Blood drop icon header
+  - 4-column responsive grid for blood group options
+  - Submit and "Do It Later" buttons
+  - Smooth slide-in animation
+  - Loading state during submission
+
+**Modified Files:**
+- `frontend/src/pages/Login.jsx` - Updated login flow to show modal after authentication
+- `frontend/src/index.css` - Added slideIn animation keyframes
+
+**Backend API:**
+- **Endpoint**: `PUT /api/donor-profile/update-blood-group/`
+- **Authentication**: Required (Token-based)
+- **Request**: `{ "blood_group": "A+" }`
+- **Response**: `{ "message": "Blood group updated successfully", "blood_group": "A+" }`
+- **Validation**: Only valid blood groups (A+, A-, B+, B-, AB+, AB-, O+, O-) accepted
 
 ## Key Features Implementation
 
