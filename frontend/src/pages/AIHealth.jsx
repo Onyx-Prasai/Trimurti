@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { FaRobot, FaPaperclip, FaSpinner } from 'react-icons/fa'
-import { chatWithAI, analyzeReport } from '../utils/api'
+import { FaRobot, FaPaperclip, FaSpinner, FaImage, FaTimes } from 'react-icons/fa'
+import { chatWithAI, analyzeReport, analyzeBloodReportImage } from '../utils/api'
 
 const AIHealth = () => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Hello! I\'m your AI Health Assistant. I can help you with blood donation questions, health tips, and analyze medical reports. How can I assist you today?',
+      content: 'Hello! I\'m your AI Health Assistant. I can help you with blood donation questions, health tips, analyze medical reports, and even analyze blood report images. How can I assist you today?',
     },
   ])
   const [input, setInput] = useState('')
@@ -15,6 +15,9 @@ const AIHealth = () => {
   const [reportText, setReportText] = useState('')
   const [reportType, setReportType] = useState('general')
   const [analyzing, setAnalyzing] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [analyzingImage, setAnalyzingImage] = useState(false)
 
   const handleSend = async () => {
     if (!input.trim() || loading) return
@@ -90,6 +93,75 @@ const AIHealth = () => {
     } finally {
       setAnalyzing(false)
     }
+  }
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file')
+        return
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size must be less than 5MB')
+        return
+      }
+      
+      setSelectedImage(file)
+      
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleAnalyzeImage = async () => {
+    if (!selectedImage || analyzingImage) return
+
+    setAnalyzingImage(true)
+    try {
+      const response = await analyzeBloodReportImage(selectedImage)
+      console.log('Image Analysis Response:', response)
+      
+      if (response.data && response.data.analysis) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            role: 'assistant',
+            content: `Blood Report Analysis:\n\n${response.data.analysis}`,
+          },
+        ])
+        setSelectedImage(null)
+        setImagePreview(null)
+      } else {
+        throw new Error('Invalid response format from API')
+      }
+    } catch (error) {
+      console.error('Error analyzing image:', error)
+      console.error('Error details:', error.response?.data || error.message)
+      
+      const errorMessage = error.response?.data?.error || 'Sorry, I encountered an error analyzing your image. Please try again.'
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          role: 'assistant',
+          content: errorMessage,
+        },
+      ])
+    } finally {
+      setAnalyzingImage(false)
+    }
+  }
+
+  const clearImageSelection = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
   }
 
   return (
@@ -176,68 +248,160 @@ const AIHealth = () => {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-2xl p-6 shadow-lg sticky top-24"
+              className="bg-white rounded-2xl p-6 shadow-lg sticky top-24 max-h-[600px] overflow-y-auto"
             >
-              <h3 className="text-xl font-semibold text-text mb-4 flex items-center">
-                <FaPaperclip className="mr-2 text-primary" />
-                Analyze Medical Report
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-text mb-2">
-                    Report Type
-                  </label>
-                  <select
-                    value={reportType}
-                    onChange={(e) => setReportType(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    <option value="general">General Health</option>
-                    <option value="blood_test">Blood Test</option>
-                    <option value="hemoglobin">Hemoglobin</option>
-                    <option value="iron">Iron Levels</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-text mb-2">
-                    Report Content
-                  </label>
-                  <textarea
-                    value={reportText}
-                    onChange={(e) => setReportText(e.target.value)}
-                    placeholder="Paste your report text here..."
-                    rows="8"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
+              {/* Tab Navigation */}
+              <div className="flex border-b border-gray-200 mb-4">
                 <button
-                  type="button"
-                  onClick={() => {
-                    console.log('Button clicked. reportText:', reportText, 'analyzing:', analyzing)
-                    if (reportText.trim() && !analyzing) {
-                      console.log('Calling handleAnalyzeReport with:', reportText, reportType)
-                      handleAnalyzeReport()
-                    } else {
-                      console.log('Condition not met: reportText.trim()=', reportText.trim(), '!analyzing=', !analyzing)
-                    }
-                  }}
-                  className="w-full bg-primary text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-all flex items-center justify-center space-x-2 cursor-pointer active:opacity-80"
+                  onClick={() => setSelectedImage(null)}
+                  className={`flex-1 py-2 px-3 text-sm font-medium flex items-center justify-center space-x-2 transition-all ${
+                    !selectedImage && !imagePreview
+                      ? 'border-b-2 border-primary text-primary'
+                      : 'text-text opacity-60 hover:opacity-100'
+                  }`}
                 >
-                  {analyzing ? (
-                    <>
-                      <FaSpinner className="animate-spin" />
-                      <span>Analyzing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FaPaperclip />
-                      <span>Analyze Report</span>
-                    </>
-                  )}
+                  <FaPaperclip size={14} />
+                  <span>Text Report</span>
                 </button>
-                <p className="text-xs text-text opacity-70">
-                  The AI will analyze your report and provide specific Nepalese dietary recommendations (iron-rich foods like spinach, lentils, etc.)
-                </p>
+                <button
+                  onClick={() => setReportText('')}
+                  className={`flex-1 py-2 px-3 text-sm font-medium flex items-center justify-center space-x-2 transition-all ${
+                    selectedImage || imagePreview
+                      ? 'border-b-2 border-primary text-primary'
+                      : 'text-text opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <FaImage size={14} />
+                  <span>Blood Report Image</span>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Text Report Tab */}
+                {!selectedImage && !imagePreview && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-text mb-2">
+                        Report Type
+                      </label>
+                      <select
+                        value={reportType}
+                        onChange={(e) => setReportType(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                      >
+                        <option value="general">General Health</option>
+                        <option value="blood_test">Blood Test</option>
+                        <option value="hemoglobin">Hemoglobin</option>
+                        <option value="iron">Iron Levels</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-text mb-2">
+                        Report Content
+                      </label>
+                      <textarea
+                        value={reportText}
+                        onChange={(e) => setReportText(e.target.value)}
+                        placeholder="Paste your report text here..."
+                        rows="8"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (reportText.trim() && !analyzing) {
+                          handleAnalyzeReport()
+                        }
+                      }}
+                      className="w-full bg-primary text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-all flex items-center justify-center space-x-2 cursor-pointer active:opacity-80"
+                    >
+                      {analyzing ? (
+                        <>
+                          <FaSpinner className="animate-spin" />
+                          <span>Analyzing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaPaperclip />
+                          <span>Analyze Report</span>
+                        </>
+                      )}
+                    </button>
+                    <p className="text-xs text-text opacity-70">
+                      Paste your medical report text and AI will analyze it to identify health issues and recommend foods to eat/avoid.
+                    </p>
+                  </>
+                )}
+
+                {/* Image Report Tab */}
+                {(selectedImage || imagePreview) && (
+                  <>
+                    {imagePreview && (
+                      <div className="relative bg-gray-100 rounded-xl overflow-hidden">
+                        <img
+                          src={imagePreview}
+                          alt="Blood Report Preview"
+                          className="w-full h-48 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={clearImageSelection}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all"
+                          title="Remove image"
+                        >
+                          <FaTimes size={14} />
+                        </button>
+                      </div>
+                    )}
+                    {!imagePreview && (
+                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-primary hover:bg-gray-50 transition-all">
+                        <FaImage className="text-4xl text-gray-400 mb-2" />
+                        <span className="text-sm font-medium text-text">Click to select image</span>
+                        <span className="text-xs text-text opacity-60">JPG, PNG, GIF, WebP • Max 5MB</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                    {imagePreview && (
+                      <label className="flex items-center justify-center border border-gray-300 rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition-all text-sm font-medium text-text">
+                        <FaImage className="mr-2" />
+                        Change Image
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeImage}
+                      disabled={!imagePreview || analyzingImage}
+                      className="w-full bg-primary text-white px-4 py-2 rounded-xl hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2 cursor-pointer active:opacity-80"
+                    >
+                      {analyzingImage ? (
+                        <>
+                          <FaSpinner className="animate-spin" />
+                          <span>Analyzing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaImage />
+                          <span>Analyze Image</span>
+                        </>
+                      )}
+                    </button>
+                    <p className="text-xs text-text opacity-70">
+                      Upload a blood report image and AI will identify health issues and recommend specific foods to eat and avoid based on Nepalese dietary options.
+                    </p>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>

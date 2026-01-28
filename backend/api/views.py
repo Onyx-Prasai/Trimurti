@@ -7,6 +7,8 @@ from django.db import transaction as db_transaction
 from django.db.models import Q, Count, Sum
 from django.utils import timezone
 from datetime import timedelta
+import base64
+from io import BytesIO
 from .models import (
     DonorProfile,
     HospitalReq,
@@ -352,6 +354,15 @@ class AIHealthViewSet(viewsets.ViewSet):
         except ImportError as e:
             raise ImportError(f"Failed to import mistralai: {e}. Please install mistralai package.")
     
+    def _get_gemini_client(self):
+        """Initialize Google Generative AI client for vision tasks"""
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=settings.GOOGLE_API_KEY)
+            return genai
+        except ImportError as e:
+            raise ImportError(f"Failed to import google.generativeai: {e}. Please install google-generativeai package.")
+    
     @action(detail=False, methods=['post'])
     def chat(self, request):
         """Chat with AI health assistant"""
@@ -396,6 +407,78 @@ Provide a helpful, practical answer focused on food and lifestyle. Do not recomm
                 return Response({'error': error_message}, status=status.HTTP_401_UNAUTHORIZED)
             
             return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'])
+    def analyze_image(self, request):
+        """Analyze blood report images and provide health/dietary recommendations"""
+        try:
+            # Check if image file is provided
+            if 'image' not in request.FILES:
+                return Response({'error': 'Image file is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            image_file = request.FILES['image']
+            
+            # Validate file size (max 5MB)
+            if image_file.size > 5 * 1024 * 1024:
+                return Response({'error': 'Image file size must be less than 5MB'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validate file type
+            allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if image_file.content_type not in allowed_types:
+                return Response({'error': f'Invalid file type. Allowed: {", ".join(allowed_types)}'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Read image data
+            image_data = image_file.read()
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
+            
+            # Get Gemini client
+            genai = self._get_gemini_client()
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            
+            prompt = """You are a health and nutrition advisor for Blood Hub Nepal. Analyze this blood report image and provide:
+
+IMPORTANT RULES:
+- NEVER recommend medicines, medications, drugs, or pharmaceutical products
+- Only suggest natural foods and lifestyle changes
+- Always advise consulting a doctor for medical treatment
+- Focus on preventive health and nutrition through diet
+
+ANALYSIS FORMAT:
+1. **Health Issues Identified**: List any health concerns visible in the report
+2. **Foods to Eat**: Recommend specific Nepalese foods with nutrients they provide:
+   - Iron-rich: spinach, lentils, red meat, fortified grains, dates
+   - Calcium-rich: milk, yogurt, sesame seeds, leafy greens
+   - Protein: chickpeas, beans, fish, eggs, nuts
+3. **Foods to Avoid**: List foods that may worsen the identified conditions
+4. **Daily Lifestyle Tips**: Exercise and habit recommendations
+5. **Additional Wellness Advice**: Other preventive health measures
+
+Be specific, practical, and actionable."""
+            
+            # Analyze image using Gemini Vision
+            response = model.generate_content([
+                prompt,
+                {
+                    "mime_type": image_file.content_type,
+                    "data": image_base64
+                }
+            ])
+            
+            return Response({
+                'analysis': response.text,
+                'status': 'success'
+            })
+            
+        except ImportError as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            error_message = f"An error occurred while analyzing the image: {str(e)}"
+            if "unauthorized" in str(e).lower() or "api key" in str(e).lower():
+                error_message = "The provided API key is invalid. Please check your Google API key configuration."
+                return Response({'error': error_message}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 class HospitalViewSet(viewsets.ReadOnlyModelViewSet):

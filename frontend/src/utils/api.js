@@ -62,6 +62,15 @@ export const redeemMedicineReward = (data) => api.post('/rewards/medicine-redemp
 // AI Health API
 export const chatWithAI = (message) => api.post('/ai-health/chat/', { message })
 export const analyzeReport = (data) => api.post('/ai-health/analyze_report/', data)
+export const analyzeBloodReportImage = (imageFile) => {
+  const formData = new FormData()
+  formData.append('image', imageFile)
+  return api.post('/ai-health/analyze_image/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+}
 
 export default api
 
