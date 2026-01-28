@@ -18,6 +18,7 @@ const AIHealth = () => {
   const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [analyzingImage, setAnalyzingImage] = useState(false)
+  const [activeTab, setActiveTab] = useState('text') // 'text' or 'image'
 
   const handleSend = async () => {
     if (!input.trim() || loading) return
@@ -99,25 +100,29 @@ const AIHealth = () => {
     const file = e.target.files?.[0]
     if (file) {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file')
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        alert('Please select an image or PDF file')
         return
       }
       
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image size must be less than 5MB')
+        alert('File size must be less than 5MB')
         return
       }
       
       setSelectedImage(file)
       
       // Create preview
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result)
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setImagePreview(reader.result)
+        }
+        reader.readAsDataURL(file)
+      } else if (file.type === 'application/pdf') {
+        setImagePreview('/pdf-thumbnail.png') // Placeholder for PDF
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -253,9 +258,9 @@ const AIHealth = () => {
               {/* Tab Navigation */}
               <div className="flex border-b border-gray-200 mb-4">
                 <button
-                  onClick={() => setSelectedImage(null)}
+                  onClick={() => setActiveTab('text')}
                   className={`flex-1 py-2 px-3 text-sm font-medium flex items-center justify-center space-x-2 transition-all ${
-                    !selectedImage && !imagePreview
+                    activeTab === 'text'
                       ? 'border-b-2 border-primary text-primary'
                       : 'text-text opacity-60 hover:opacity-100'
                   }`}
@@ -264,9 +269,9 @@ const AIHealth = () => {
                   <span>Text Report</span>
                 </button>
                 <button
-                  onClick={() => setReportText('')}
+                  onClick={() => setActiveTab('image')}
                   className={`flex-1 py-2 px-3 text-sm font-medium flex items-center justify-center space-x-2 transition-all ${
-                    selectedImage || imagePreview
+                    activeTab === 'image'
                       ? 'border-b-2 border-primary text-primary'
                       : 'text-text opacity-60 hover:opacity-100'
                   }`}
@@ -278,7 +283,7 @@ const AIHealth = () => {
 
               <div className="space-y-4">
                 {/* Text Report Tab */}
-                {!selectedImage && !imagePreview && (
+                {activeTab === 'text' && (
                   <>
                     <div>
                       <label className="block text-sm font-medium text-text mb-2">
@@ -335,7 +340,7 @@ const AIHealth = () => {
                 )}
 
                 {/* Image Report Tab */}
-                {(selectedImage || imagePreview) && (
+                {activeTab === 'image' && (
                   <>
                     {imagePreview && (
                       <div className="relative bg-gray-100 rounded-xl overflow-hidden">
@@ -358,10 +363,9 @@ const AIHealth = () => {
                       <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-primary hover:bg-gray-50 transition-all">
                         <FaImage className="text-4xl text-gray-400 mb-2" />
                         <span className="text-sm font-medium text-text">Click to select image</span>
-                        <span className="text-xs text-text opacity-60">JPG, PNG, GIF, WebP • Max 5MB</span>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/*, application/pdf"
                           onChange={handleImageSelect}
                           className="hidden"
                         />
@@ -373,7 +377,7 @@ const AIHealth = () => {
                         Change Image
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/*, application/pdf"
                           onChange={handleImageSelect}
                           className="hidden"
                         />
