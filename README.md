@@ -1,7 +1,7 @@
 # Trimurti - Blood Management and Donor Reward System
 
 ## Introduction
-A comprehensive platform designed to streamline blood donation processes, manage blood stock efficiently, and incentivize donors through a robust reward system. It connects donors, hospitals, and blood banks to ensure timely blood availability and foster a community of regular blood donors.
+A comprehensive platform designed to streamline blood donation processes, manage blood stock efficiently, and incentivize donors through a robust reward system. It connects donors, hospitals, and blood banks to ensure timely blood availability and foster a community of regular blood donors. 
 
 ## Features
 
@@ -15,12 +15,12 @@ A comprehensive platform designed to streamline blood donation processes, manage
 
 ### 2. Blood Request & Supply Management
 *   **Hospital Blood Requests**: Hospitals can submit urgent blood requests with details on blood type, product, and urgency.
-*   **Emergency Blood Requests**: Users can initiate emergency blood requests, triggering SMS notifications to nearby matching donors.
+*   **Emergency Blood Requests**: Users can initiate emergency blood requests, triggering SMS notifications to nearby location matching donors.
 *   **Blood Stock Dashboard**: Real-time overview of blood stock levels across participating hospitals and blood banks.
 *   **Automated Stock Ingestion**: Hospitals can integrate to automatically update blood stock levels via API, recording all transactions.
 *   **Low Stock Alerts**: Proactive notifications for hospitals when blood stock falls below critical thresholds.
 *   **Find Blood Banks**: Locate nearby blood banks with contact information and operating hours.
-*   **Blood Needs Prediction**: Utilizes predictive analysis to forecast regional blood requirements, aiding in proactive resource allocation.
+*   **Blood Needs Prediction**: Utilizes predictive analysis to forecast regional blood requirements, aiding in proactive resource allocation using time series forecasting.
 *   **Donation Drives**: Management and tracking of planned blood donation campaigns, including target collection and progress.
 
 ### 3. Reward System
@@ -57,7 +57,7 @@ The backend, powered by Django REST Framework, handles all data management, busi
 *   **SMS Service Integration**: Integrates with an SMS gateway (e.g., Twilio) to send timely notifications to potential donors for emergency blood requests, utilizing location-based matching.
 *   **AI Integration**: Connects with Mistral AI for the health assistant chatbot and blood report analysis features, ensuring responsible and health-focused recommendations.
 *   **Blood Stock Logic**: Manages the append-only transaction ledger and materialized blood stock views, updating in real-time as hospitals ingest data.
-*   **Prediction Engine**: Processes historical data to predict future blood needs, exposed via an API endpoint.
+*   **Prediction Engine**: Processes historical data to predict future blood needs, exposed via an API endpoint uses time series forecasting .
 
 ## Getting Started
 
@@ -277,9 +277,7 @@ BloodHub Nepal is designed with **privacy-first** principles:
 - Blood group types
 - Hospital name and location
 - Timestamps of stock changes
-
-❌ **What We DON'T Collect:**
-- Donor personal information (name, age, contact)
+- Donor personal information (name, age, contact, blood group)
 - Patient details
 - Medical records
 - Staff information
@@ -303,9 +301,6 @@ BloodHub Nepal is designed with **privacy-first** principles:
 2. **Receive API Key**: Securely store your unique API key
 3. **Integrate**: Use our client libraries or direct HTTP calls
 4. **Report Transactions**: Automatically send stock changes
-
-See [HOSPITAL_INTEGRATION_GUIDE.md](HOSPITAL_INTEGRATION_GUIDE.md) for detailed instructions.
-
 ### For Citizens
 
 1. Visit the public dashboard
@@ -313,6 +308,7 @@ See [HOSPITAL_INTEGRATION_GUIDE.md](HOSPITAL_INTEGRATION_GUIDE.md) for detailed 
 3. View real-time availability
 4. Find nearest hospital with required blood
 5. Contact hospital directly
+6. If want blood contact hospital and the hospital will call the nearest person for donation
 
 ### For Administrators
 
@@ -344,8 +340,6 @@ See [HOSPITAL_INTEGRATION_GUIDE.md](HOSPITAL_INTEGRATION_GUIDE.md) for detailed 
 **DonationDrive**: Blood donation campaigns
 - title, city, blood_groups, urgency, target_units, status
 
-See [BLOODSYNC_ARCHITECTURE.md](BLOODSYNC_ARCHITECTURE.md) for complete schema.
-
 ---
 
 ## 🧪 Testing
@@ -368,53 +362,6 @@ curl -X POST http://localhost:8000/api/v1/ingest/transaction/ \
   -d '{"blood_group":"O+","units_change":5,"timestamp":"2026-01-27T10:00:00Z"}'
 ```
 
----
-
-## 🚀 Deployment
-
-### Production Checklist
-
-- [ ] Migrate to PostgreSQL
-- [ ] Set up SSL/TLS certificate
-- [ ] Configure environment variables
-- [ ] Enable production settings (DEBUG=False)
-- [ ] Set up Celery + Redis for background tasks
-- [ ] Configure email/SMS services for alerts
-- [ ] Set up monitoring (Sentry, Prometheus)
-- [ ] Database backups
-- [ ] Load balancing
-- [ ] CDN for static files
-
-### Recommended Stack
-
-- **Web Server**: Nginx
-- **App Server**: Gunicorn
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **Task Queue**: Celery
-- **Hosting**: AWS, DigitalOcean, or Heroku
-- **Monitoring**: Sentry, Grafana
-
----
-
-## 📚 Documentation
-
-- **[System Architecture](BLOODSYNC_ARCHITECTURE.md)**: Complete technical design
-- **[Hospital Integration Guide](HOSPITAL_INTEGRATION_GUIDE.md)**: API integration instructions
-- **[Setup Guide](SETUP.md)**: Original setup documentation
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ### Coding Standards
 
 - Follow PEP 8 for Python code
@@ -431,18 +378,9 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 ---
 
-## 🙏 Acknowledgments
-
-- Nepal Red Cross Society
-- National Blood Transfusion Service
-- All participating hospitals and blood banks
-- Open-source community
-
 ## 🔮 Future Enhancements
 
 - [ ] Mobile app (React Native)
-- [ ] ML-based shortage prediction
-- [ ] SMS alert system
 - [ ] Blockchain audit trail
 - [ ] Multi-language support (Nepali)
 - [ ] Offline sync mode
@@ -451,14 +389,10 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 ---
 
-## ⭐ Star this project if you find it useful!
 2
 **Together, we can save lives through better blood management in Nepal.**
 
 ---
-
-*Last Updated: January 27, 2026*
-*Version: 2.0.0*
 
 ## Blood Group Selection Feature
 
@@ -504,13 +438,9 @@ The dashboard implements a 56-day lockout period after each donation. The calend
 - **Gray**: Past dates
 
 ### Points System
-- 100 points awarded per confirmed donation
-- 20 bonus points for successful referrals
+- 500 points awarded per confirmed donation
+- 100 bonus points for successful referrals
 - Points can be redeemed for store items
-
-### Gamification Badges
-- **First Drop**: Earned after first donation
-- **Life Saver**: Earned after 5 donations
 
 ### AI Health Assistant
 - Chat interface for health questions
@@ -522,6 +452,7 @@ The backend includes a prediction model that analyzes:
 - Active hospital requests vs. available donors
 - Regional blood shortages
 - Urgency scores for each blood type and city
+- Time series forecasting with auto regression and moving average combined  
 
 ## API Endpoints
 
