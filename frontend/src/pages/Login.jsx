@@ -45,7 +45,7 @@ export default function Login({ setIsAuthenticated }) {
     try {
       const token = localStorage.getItem('token');
 
-      await fetch('/api/donor-profile/update-blood-group/', {
+      const response = await fetch('/api/donor-profile/update-blood-group/', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -53,6 +53,24 @@ export default function Login({ setIsAuthenticated }) {
         },
         body: JSON.stringify({ blood_group: bloodGroup }),
       });
+
+      // Keep localStorage user in sync so Profile shows the correct value immediately
+      let savedBloodGroup = bloodGroup;
+      try {
+        const data = await response.json();
+        if (data?.blood_group) savedBloodGroup = data.blood_group;
+      } catch {
+        // ignore JSON parse errors; we'll still use the selected value
+      }
+
+      const existingUser = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          ...existingUser,
+          blood_group: savedBloodGroup,
+        })
+      );
     } finally {
       setShowBloodGroupModal(false);
       navigate('/dashboard');

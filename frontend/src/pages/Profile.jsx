@@ -46,6 +46,17 @@ const Profile = ({ setIsAuthenticated }) => {
     try {
       const response = await getDonorProfile(user.id)
       setDonor(response.data)
+
+      // Prefer server truth for blood group (keeps Profile in sync with login modal selection)
+      const serverBloodGroup = response?.data?.blood_group
+      if (serverBloodGroup) {
+        setFormData((prev) => ({ ...prev, blood_group: serverBloodGroup }))
+        const existingUser = JSON.parse(localStorage.getItem('user') || '{}')
+        localStorage.setItem(
+          'user',
+          JSON.stringify({ ...existingUser, blood_group: serverBloodGroup })
+        )
+      }
     } catch (error) {
       console.error('Error fetching donor data:', error)
     }
