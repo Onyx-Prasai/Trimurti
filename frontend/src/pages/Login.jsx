@@ -19,31 +19,22 @@ export default function Login({ setIsAuthenticated }) {
     try {
       const response = await fetch('/api/auth/login/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username,
-          password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
-      console.log('Login response:', data);
 
       if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         setUserData(data);
         setIsAuthenticated(true);
-        
-        // Show blood group modal instead of navigating immediately
         setShowBloodGroupModal(true);
       } else {
         setError(data.detail || 'Login failed. Please try again.');
       }
     } catch (err) {
-      console.error('Login error:', err);
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -53,32 +44,16 @@ export default function Login({ setIsAuthenticated }) {
   const handleBloodGroupSubmit = async (bloodGroup) => {
     try {
       const token = localStorage.getItem('token');
-      
-      // Update user's blood group in the backend
-      const response = await fetch('/api/donor-profile/update-blood-group/', {
+
+      await fetch('/api/donor-profile/update-blood-group/', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Token ${token}`,
+          Authorization: `Token ${token}`,
         },
-        body: JSON.stringify({
-          blood_group: bloodGroup,
-        }),
+        body: JSON.stringify({ blood_group: bloodGroup }),
       });
-
-      if (response.ok) {
-        console.log('Blood group saved successfully');
-        setShowBloodGroupModal(false);
-        navigate('/dashboard');
-      } else {
-        console.error('Failed to save blood group');
-        alert('Failed to save blood group. Proceeding anyway...');
-        setShowBloodGroupModal(false);
-        navigate('/dashboard');
-      }
-    } catch (error) {
-      console.error('Error saving blood group:', error);
-      // Proceed even if saving fails
+    } finally {
       setShowBloodGroupModal(false);
       navigate('/dashboard');
     }
@@ -86,7 +61,66 @@ export default function Login({ setIsAuthenticated }) {
 
   return (
     <>
-      <div>Hello World</div>
+
+      <BloodGroupModal
+        isOpen={showBloodGroupModal}
+        onClose={() => {
+          setShowBloodGroupModal(false);
+          navigate('/dashboard');
+        }}
+        onSubmit={handleBloodGroupSubmit}
+      />
+
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center px-4">
+        <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
+
+          {/* LEFT SIDE */}
+          <div className="hidden md:block bg-gradient-to-r from-red-600 to-red-400 text-white rounded-3xl p-12 shadow-2xl">
+            <h1 className="text-4xl font-bold">Blood Hub Nepal</h1>
+            <p className="mt-4">Save Lives, One Drop at a Time</p>
+          </div>
+
+          {/* RIGHT SIDE */}
+          <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
+            <h2 className="text-3xl font-bold mb-6">Welcome Back</h2>
+
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full p-3 border rounded-xl"
+                required
+              />
+
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 border rounded-xl"
+                required
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-red-600 text-white rounded-xl"
+              >
+                {loading ? 'Signing In...' : 'Sign In'}
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </div>
     </>
   );
 }
