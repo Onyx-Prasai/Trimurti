@@ -163,3 +163,26 @@ MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY', '')
 # Set the GOOGLE_API_KEY environment variable to enable image analysis features.
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', '')
 
+# Twilio SMS Configuration (International)
+# Set these environment variables to enable SMS notifications via Twilio.
+# Get credentials from: https://www.twilio.com/console
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
+TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', '')
+
+# Sparrow SMS Configuration (Nepal - Recommended for Nepal)
+# Set these environment variables to enable SMS via Sparrow SMS (better connectivity in Nepal).
+# Get credentials from: https://web.sparrowsms.com (Sign up for free account)
+# Token: Get from Sparrow SMS dashboard
+# From: Your sender ID (e.g., "BLOODHUB" or your registered number)
+SPARROW_TOKEN = os.getenv('SPARROW_TOKEN', '')
+SPARROW_FROM = os.getenv('SPARROW_FROM', '')
+
+# SMS Pasal Configuration (Nepal - Alternative Provider)
+# Set these environment variables to enable SMS via SMS Pasal (free trial available).
+# Get credentials from: https://smspasal.com (Sign up for free trial)
+# Token: Get from SMS Pasal dashboard
+# From: Your sender ID
+SMS_PASAL_TOKEN = os.getenv('SMS_PASAL_TOKEN', '')
+SMS_PASAL_FROM = os.getenv('SMS_PASAL_FROM', '')
+

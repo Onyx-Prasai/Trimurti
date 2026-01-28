@@ -605,6 +605,8 @@ class BloodRequest(models.Model):
     district = models.CharField(max_length=100)
     city = models.CharField(max_length=100)
     location = models.TextField(help_text="Full location description")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Latitude for location-based matching")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Longitude for location-based matching")
     blood_type = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES)
     blood_product = models.CharField(max_length=20, choices=BLOOD_PRODUCT_CHOICES)
     urgency = models.CharField(max_length=20, choices=URGENCY_CHOICES)

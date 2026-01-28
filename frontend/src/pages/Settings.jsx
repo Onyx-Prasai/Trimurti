@@ -11,8 +11,17 @@ const Settings = () => {
   const handleDarkModeToggle = () => {
     const newDarkMode = !darkMode
     setDarkMode(newDarkMode)
-    localStorage.setItem('darkMode', newDarkMode)
-    document.documentElement.classList.toggle('dark', newDarkMode)
+    localStorage.setItem('darkMode', newDarkMode.toString())
+    
+    // Apply dark mode to the document immediately
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    
+    // Dispatch a custom event so other components can listen
+    window.dispatchEvent(new CustomEvent('darkModeChange', { detail: { darkMode: newDarkMode } }))
   }
 
   const handleLanguageChange = (lang) => {

@@ -4,8 +4,9 @@ Alert system, notifications, and helper functions
 """
 
 from django.utils import timezone
-from django.db.models import Sum
-from .models import BloodStock, StockAlert, Hospital, DonationDrive, BLOOD_GROUP_CHOICES
+from django.db.models import Sum, Q
+from math import radians, cos, sin, asin, sqrt
+from .models import BloodStock, StockAlert, Hospital, DonationDrive, BLOOD_GROUP_CHOICES, DonorProfile
 
 
 def check_and_create_alerts():
@@ -346,3 +347,105 @@ def get_nearby_hospitals_with_stock(hospital, blood_group, radius_km=50):
             })
     
     return results
+
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """
+    Calculate the great circle distance between two points on Earth (in meters)
+    using the Haversine formula.
+    
+    Args:
+        lat1, lon1: Latitude and longitude of first point (in decimal degrees)
+        lat2, lon2: Latitude and longitude of second point (in decimal degrees)
+    
+    Returns:
+        float: Distance in meters
+    """
+    if not all([lat1, lon1, lat2, lon2]):
+        return None
+    
+    # Convert decimal degrees to radians
+    lat1, lon1, lat2, lon2 = map(radians, [float(lat1), float(lon1), float(lat2), float(lon2)])
+    
+    # Haversine formula
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    
+    # Radius of earth in meters
+    r = 6371000
+    
+    return c * r
+
+
+def find_donors_within_radius(request_lat, request_lon, blood_type, radius_meters=500, max_radius_meters=10000):
+    """
+    Find donors within a specified radius from the request location.
+    Expands radius if not enough donors found.
+    
+    Args:
+        request_lat: Latitude of blood request location
+        request_lon: Longitude of blood request location
+        blood_type: Blood type needed
+        radius_meters: Starting radius in meters (default: 500m)
+        max_radius_meters: Maximum radius to search (default: 10km)
+    
+    Returns:
+        dict: {
+            'donors': list of DonorProfile objects,
+            'radius_used': final radius used in meters,
+            'total_found': number of donors found
+        }
+    """
+    if not request_lat or not request_lon:
+        return {'donors': [], 'radius_used': 0, 'total_found': 0}
+    
+    current_radius = radius_meters
+    donors_found = []
+    
+    # Get all donors with matching blood type and location data
+    all_donors = DonorProfile.objects.filter(
+        blood_group=blood_type,
+        latitude__isnull=False,
+        longitude__isnull=False,
+        location_consent=True,
+        phone__isnull=False
+    ).exclude(phone__exact='')
+    
+    # Expand radius until we find donors or reach max radius
+    while current_radius <= max_radius_meters:
+        for donor in all_donors:
+            distance = calculate_distance(
+                request_lat, request_lon,
+                float(donor.latitude), float(donor.longitude)
+            )
+            
+            if distance and distance <= current_radius:
+                # Check if donor is not already in the list
+                if donor.id not in [d.id for d in donors_found]:
+                    donors_found.append(donor)
+        
+        # If we found donors, return them
+        if donors_found:
+            return {
+                'donors': donors_found,
+                'radius_used': current_radius,
+                'total_found': len(donors_found)
+            }
+        
+        # Expand radius: 500m -> 1km -> 2km -> 5km -> 10km
+        if current_radius < 1000:
+            current_radius = 1000
+        elif current_radius < 2000:
+            current_radius = 2000
+        elif current_radius < 5000:
+            current_radius = 5000
+        else:
+            current_radius = max_radius_meters
+    
+    return {
+        'donors': donors_found,
+        'radius_used': current_radius,
+        'total_found': len(donors_found)
+    }
