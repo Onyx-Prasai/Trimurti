@@ -445,7 +445,6 @@ curl -X POST http://localhost:8000/api/v1/ingest/transaction/ \
 ## 📚 Documentation
 
 - **[System Architecture](BLOODSYNC_ARCHITECTURE.md)**: Complete technical design
-- **[Development Roadmap](DEVELOPMENT_ROADMAP.md)**: Project timeline and milestones
 - **[Hospital Integration Guide](HOSPITAL_INTEGRATION_GUIDE.md)**: API integration instructions
 - **[Setup Guide](SETUP.md)**: Original setup documentation
 
