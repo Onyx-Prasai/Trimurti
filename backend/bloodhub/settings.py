@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'users',
     'api',
+    'timer',
 ]
 
 MIDDLEWARE = [
@@ -162,6 +163,9 @@ MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY', '')
 # Google API Key (For Vision AI)
 # Set the GOOGLE_API_KEY environment variable to enable image analysis features.
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', '')
+
+# OpenWeatherMap API Key (For TaR Timer)
+OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY', '257cbb8f4214c846a44f51392b0af52d')
 
 # Twilio SMS Configuration (International)
 # Set these environment variables to enable SMS notifications via Twilio.
