@@ -112,7 +112,7 @@ class BloodStockSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BloodStock
-        fields = ['id', 'hospital', 'blood_group', 'units_available', 'updated_at']
+        fields = ['id', 'hospital', 'blood_group', 'blood_product_type', 'units_available', 'updated_at']
 
 
 class TransactionSerializer(serializers.ModelSerializer):

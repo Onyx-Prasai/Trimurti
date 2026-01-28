@@ -8,6 +8,7 @@ import { mockStockData, mockPredictionsData } from './FindBlood.test'
 const FindBlood = () => {
   const [viewMode, setViewMode] = useState('list') // 'list' or 'map'
   const [stock, setStock] = useState([])
+  const [stockPage, setStockPage] = useState(1)
   const [stockFilters, setStockFilters] = useState({ 
     blood_group: '', 
     city: '', 
@@ -16,11 +17,17 @@ const FindBlood = () => {
     order: 'asc' 
   })
   const [stockLoading, setStockLoading] = useState(false)
+  const PAGE_SIZE = 5
 
   useEffect(() => {
     fetchStock()
     const interval = setInterval(fetchStock, 15000)
     return () => clearInterval(interval)
+  }, [stockFilters])
+
+  useEffect(() => {
+    // Reset pagination whenever filters change
+    setStockPage(1)
   }, [stockFilters])
 
   const fetchData = async () => {
@@ -79,6 +86,50 @@ const FindBlood = () => {
   }
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+  const formatProductType = (t) => {
+    // Default to Whole Blood if backend doesn't send a specific product type
+    if (!t) return 'Whole Blood'
+    const normalized = String(t).toLowerCase().replace(/\s+/g, '_')
+    if (normalized === 'whole_blood') return 'Whole Blood'
+    if (normalized === 'plasma') return 'Plasma'
+    if (normalized === 'platelets') return 'Platelets'
+    // Fallback: show the raw value in a nicer way instead of "Unknown"
+    return String(t)
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (ch) => ch.toUpperCase())
+  }
+
+  // Group stock rows by hospital so "Live Blood Availability" shows hospitals (not a long table)
+  const hospitalGroups = Object.values(
+    (stock || []).reduce((acc, item) => {
+      const hospitalName = item.hospital?.name || item.hospital_name || 'Unknown Hospital'
+      const city = item.hospital?.city || item.city || ''
+      const address = item.hospital?.address || ''
+      const key = `${hospitalName}__${city}__${address}`
+      if (!acc[key]) {
+        acc[key] = {
+          key,
+          hospitalName,
+          city,
+          address,
+          updated_at: item.updated_at || item.last_updated || null,
+          items: [],
+        }
+      }
+      acc[key].items.push(item)
+      const itemUpdated = item.updated_at || item.last_updated || null
+      if (itemUpdated) {
+        const cur = acc[key].updated_at ? new Date(acc[key].updated_at).getTime() : 0
+        const nxt = new Date(itemUpdated).getTime()
+        if (nxt > cur) acc[key].updated_at = itemUpdated
+      }
+      return acc
+    }, {})
+  )
+
+  const totalPages = Math.max(1, Math.ceil(hospitalGroups.length / PAGE_SIZE))
+  const safePage = Math.min(Math.max(stockPage, 1), totalPages)
+  const pagedHospitals = hospitalGroups.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   return (
     <div className="min-h-screen py-8">
@@ -156,106 +207,132 @@ const FindBlood = () => {
             </div>
           </div>
 
-          {stockLoading ? (
-            <div className="text-center py-4">Loading live stock...</div>
-          ) : stock.length === 0 ? (
-            <div className="text-center py-4 text-text">No stock records yet.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Hospital</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">District</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Blood Group</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Product Type</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Units</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Updated</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {stock.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-text">{item.hospital?.name || item.hospital_name}</p>
-                        <p className="text-sm text-gray-500">{item.hospital?.address || ''}</p>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{item.hospital?.city || item.city}</td>
-                      <td className="px-4 py-3">
-                        <span className="px-3 py-1 bg-primary text-white rounded-full text-sm">
-                          {item.blood_group}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {item.blood_product_type === 'whole_blood' ? 'Whole Blood' :
-                         item.blood_product_type === 'plasma' ? 'Plasma' :
-                         item.blood_product_type === 'platelets' ? 'Platelets' : 'Unknown'}
-                      </td>
-                      <td className="px-4 py-3 text-lg font-bold text-text">{item.units_available || item.units}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {new Date(item.updated_at || item.last_updated).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* View Mode Toggle */}
+          <div className="flex justify-center mb-6">
+            <div className="bg-gray-50 rounded-2xl p-1 shadow-sm inline-flex">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-6 py-2 rounded-xl transition-all flex items-center space-x-2 ${
+                  viewMode === 'list'
+                    ? 'bg-primary text-white'
+                    : 'text-text hover:bg-gray-100'
+                }`}
+              >
+                <FaList />
+                <span>List</span>
+              </button>
+              <button
+                onClick={() => setViewMode('map')}
+                className={`px-6 py-2 rounded-xl transition-all flex items-center space-x-2 ${
+                  viewMode === 'map'
+                    ? 'bg-primary text-white'
+                    : 'text-text hover:bg-gray-100'
+                }`}
+              >
+                <FaMap />
+                <span>Map</span>
+              </button>
             </div>
+          </div>
+
+          {viewMode === 'map' ? (
+            <div className="mb-2">
+              <BloodMapView 
+                bloodGroup={stockFilters.blood_group}
+                selectedCity={stockFilters.city?.trim() || ''}
+              />
+            </div>
+          ) : stockLoading ? (
+            <div className="text-center py-6">Loading live stock...</div>
+          ) : hospitalGroups.length === 0 ? (
+            <div className="text-center py-6 text-text">No stock records yet.</div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {pagedHospitals.map((group) => (
+                  <div key={group.key} className="border border-gray-200 rounded-2xl p-5 hover:shadow-md transition-all">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+                      <div>
+                        <p className="text-lg font-bold text-text">{group.hospitalName}</p>
+                        <p className="text-sm text-gray-600">{group.city}{group.address ? ` • ${group.address}` : ''}</p>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {group.updated_at ? `Updated: ${new Date(group.updated_at).toLocaleString()}` : ''}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {group.items.map((item) => (
+                        <div
+                          key={item.id || `${item.blood_group}-${item.blood_product_type}-${item.units_available || item.units}`}
+                          className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2"
+                        >
+                          <span className="px-2 py-1 bg-primary text-white rounded-full text-xs font-semibold">
+                            {item.blood_group}
+                          </span>
+                          <span className="text-xs text-gray-700">{formatProductType(item.blood_product_type)}</span>
+                          <span className="text-xs font-bold text-text">
+                            {item.units_available ?? item.units ?? 0} units
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination ("scroll wheel" style page buttons) */}
+              <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="text-sm text-gray-600">
+                  Page <span className="font-semibold text-text">{safePage}</span> of{' '}
+                  <span className="font-semibold text-text">{totalPages}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setStockPage((p) => Math.max(1, p - 1))}
+                    disabled={safePage === 1}
+                    className="px-3 py-2 rounded-xl border border-gray-300 text-text disabled:opacity-50 hover:bg-gray-50"
+                  >
+                    Prev
+                  </button>
+
+                  <div className="max-w-full overflow-x-auto">
+                    <div className="flex gap-2">
+                      {Array.from({ length: totalPages }).map((_, idx) => {
+                        const page = idx + 1
+                        const active = page === safePage
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setStockPage(page)}
+                            className={`min-w-10 px-3 py-2 rounded-xl border transition-all ${
+                              active
+                                ? 'bg-primary text-white border-primary'
+                                : 'border-gray-300 text-text hover:bg-gray-50'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setStockPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={safePage === totalPages}
+                    className="px-3 py-2 rounded-xl border border-gray-300 text-text disabled:opacity-50 hover:bg-gray-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </motion.div>
 
         {/* Search Type Toggle - Removed, moved to Blood Request */}
-
-        {/* View Mode Toggle */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-white rounded-2xl p-1 shadow-lg inline-flex">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-6 py-2 rounded-xl transition-all flex items-center space-x-2 ${
-                viewMode === 'list'
-                  ? 'bg-primary text-white'
-                  : 'text-text hover:bg-gray-100'
-              }`}
-            >
-              <FaList />
-              <span>Stock Table</span>
-            </button>
-            <button
-              onClick={() => setViewMode('map')}
-              className={`px-6 py-2 rounded-xl transition-all flex items-center space-x-2 ${
-                viewMode === 'map'
-                  ? 'bg-primary text-white'
-                  : 'text-text hover:bg-gray-100'
-              }`}
-            >
-              <FaMap />
-              <span>Map View</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Stock Table View */}
-        {viewMode === 'list' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {/* Stock table already displayed above in Live Stock Section */}
-          </motion.div>
-        )}
-
-        {/* Map View */}
-        {viewMode === 'map' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <BloodMapView 
-              bloodGroup={stockFilters.blood_group}
-              selectedCity={stockFilters.city}
-            />
-          </motion.div>
-        )}
 
         {/* Blood Prediction Section */}
         {/* Moved to separate BloodPrediction page */}

@@ -254,7 +254,7 @@ const Points = () => {
               <p className="text-xl opacity-90 mb-2">Your Points Balance</p>
               <p className="text-5xl font-bold">{points}</p>
               <p className="text-sm opacity-80 mt-2">
-                Earn 100 points per donation • 20 bonus points per referral
+                Earn 500 points per donation • 100 bonus points per referral
               </p>
             </div>
             <FaCoins className="text-8xl opacity-20" />
@@ -289,7 +289,7 @@ const Points = () => {
           </div>
           <p className="text-gray-700 opacity-70">
             Share your referral link with friends. When they register and make their first
-            donation, you'll both earn 20 bonus points!
+            donation, you'll earn 100 bonus points!
           </p>
         </motion.div>
 
