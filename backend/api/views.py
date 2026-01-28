@@ -354,15 +354,6 @@ class AIHealthViewSet(viewsets.ViewSet):
         except ImportError as e:
             raise ImportError(f"Failed to import mistralai: {e}. Please install mistralai package.")
     
-    def _get_gemini_client(self):
-        """Initialize Google Generative AI client for vision tasks"""
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=settings.GOOGLE_API_KEY)
-            return genai
-        except ImportError as e:
-            raise ImportError(f"Failed to import google.generativeai: {e}. Please install google-generativeai package.")
-    
     @action(detail=False, methods=['post'])
     def chat(self, request):
         """Chat with AI health assistant"""
@@ -372,6 +363,8 @@ class AIHealthViewSet(viewsets.ViewSet):
             return Response({'error': 'Message is required'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            if not settings.MISTRAL_API_KEY:
+                return Response({'error': 'Mistral API key is not configured in settings.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             client = self._get_client()
             
             prompt = f"""You are a helpful health and nutrition assistant for Blood Hub Nepal. Your role is to:
@@ -403,39 +396,104 @@ Provide a helpful, practical answer focused on food and lifestyle. Do not recomm
         except Exception as e:
             error_message = f"An error occurred while communicating with the AI service: {str(e)}"
             if "unauthorized" in str(e).lower() or "api key" in str(e).lower():
-                error_message = "The provided API key is invalid. Please check your API key and try again."
+                error_message = "The provided Mistral API key is invalid or unauthorized. Please check your API key configuration and ensure it has the necessary permissions."
                 return Response({'error': error_message}, status=status.HTTP_401_UNAUTHORIZED)
             
             return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'])
     def analyze_image(self, request):
-        """Analyze blood report images and provide health/dietary recommendations"""
+        """Analyze blood report images/PDFs and provide health/dietary recommendations"""
         try:
-            # Check if image file is provided
+            # Check if file is provided
             if 'image' not in request.FILES:
-                return Response({'error': 'Image file is required'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Image or PDF file is required'}, status=status.HTTP_400_BAD_REQUEST)
             
-            image_file = request.FILES['image']
+            uploaded_file = request.FILES['image']
             
             # Validate file size (max 5MB)
-            if image_file.size > 5 * 1024 * 1024:
-                return Response({'error': 'Image file size must be less than 5MB'}, status=status.HTTP_400_BAD_REQUEST)
+            if uploaded_file.size > 5 * 1024 * 1024:
+                return Response({'error': 'File size must be less than 5MB'}, status=status.HTTP_400_BAD_REQUEST)
             
             # Validate file type
-            allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-            if image_file.content_type not in allowed_types:
-                return Response({'error': f'Invalid file type. Allowed: {", ".join(allowed_types)}'}, status=status.HTTP_400_BAD_REQUEST)
+            allowed_image_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            allowed_document_types = ['application/pdf']
             
-            # Read image data
-            image_data = image_file.read()
-            image_base64 = base64.b64encode(image_data).decode('utf-8')
+            if uploaded_file.content_type not in allowed_image_types + allowed_document_types:
+                return Response({'error': f'Invalid file type. Allowed: {", ".join(allowed_image_types + allowed_document_types)}'}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Get Gemini client
-            genai = self._get_gemini_client()
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            if uploaded_file.content_type == 'application/pdf':
+                # Process PDF using Mistral AI
+                if not settings.MISTRAL_API_KEY:
+                    return Response({'error': 'Mistral API key is not configured in settings for PDF analysis. Please set MISTRAL_API_KEY.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+                try:
+                    # Use BytesIO to read the PDF file from memory
+                    pdf_file = BytesIO(uploaded_file.read())
+                    reader = PdfReader(pdf_file)
+                    pdf_text = ""
+                    for page in reader.pages:
+                        pdf_text += page.extract_text() + "\n"
+                    
+                    if not pdf_text.strip():
+                        return Response({'error': 'Could not extract text from PDF. The PDF might be image-based or encrypted.'}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    mistral_client = self._get_client()
+                    
+                    prompt = f"""You are a health and nutrition advisor for Blood Hub Nepal. Analyze this blood report (extracted from a PDF) and provide:
+
+IMPORTANT RULES:
+- NEVER recommend medicines, medications, drugs, or pharmaceutical products
+- Only suggest natural foods and lifestyle changes
+- Always advise consulting a doctor for medical treatment
+- Focus on preventive health and nutrition through diet
+
+ANALYSIS FORMAT:
+1. **Health Issues Identified**: List any health concerns visible in the report
+2. **Foods to Eat**: Recommend specific Nepalese foods with nutrients they provide:
+   - Iron-rich: spinach, lentils, red meat, fortified grains, dates
+   - Calcium-rich: milk, yogurt, sesame seeds, leafy greens
+   - Protein: chickpeas, beans, fish, eggs, nuts
+3. **Foods to Avoid**: List foods that may worsen the identified conditions
+4. **Daily Lifestyle Tips**: Exercise and habit recommendations
+5. **Additional Wellness Advice**: Other preventive health measures
+
+Blood Report Content:
+{pdf_text}
+
+Be specific, practical, and actionable."""
+                    
+                    response = mistral_client.chat.complete(
+                        model="mistral-small-latest",
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    
+                    return Response({
+                        'analysis': response.choices[0].message.content,
+                        'status': 'success'
+                    })
+                except ImportError as e:
+                    return Response({'error': f"Missing dependency for PDF processing: {e}. Please install pypdf in your backend environment."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                except Exception as pdf_error:
+                    return Response({'error': f"Error processing PDF with Mistral AI: {str(pdf_error)}. Ensure pypdf is installed and the PDF is valid, and your Mistral API key is correct."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            prompt = """You are a health and nutrition advisor for Blood Hub Nepal. Analyze this blood report image and provide:
+            elif uploaded_file.content_type in allowed_image_types:
+                # Process Image using Mistral AI
+                if not settings.MISTRAL_API_KEY:
+                    return Response({'error': 'Mistral API key is not configured in settings for image analysis. Please set MISTRAL_API_KEY.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+                # Read image data
+                image_data = uploaded_file.read()
+                image_base64 = base64.b64encode(image_data).decode('utf-8')
+                
+                # Get Mistral client
+                mistral_client = self._get_client()
+                
+                # Determine image format for data URL
+                image_format = uploaded_file.content_type.split('/')[-1]
+                image_data_url = f"data:{uploaded_file.content_type};base64,{image_base64}"
+                
+                prompt_text = """You are a health and nutrition advisor for Blood Hub Nepal. Analyze this blood report image and provide:
 
 IMPORTANT RULES:
 - NEVER recommend medicines, medications, drugs, or pharmaceutical products
@@ -454,27 +512,33 @@ ANALYSIS FORMAT:
 5. **Additional Wellness Advice**: Other preventive health measures
 
 Be specific, practical, and actionable."""
-            
-            # Analyze image using Gemini Vision
-            response = model.generate_content([
-                prompt,
-                {
-                    "mime_type": image_file.content_type,
-                    "data": image_base64
-                }
-            ])
-            
-            return Response({
-                'analysis': response.text,
-                'status': 'success'
-            })
+                
+                # Prepare messages for Mistral multimodal
+                messages = [
+                    {"role": "user", "content": [
+                        {"type": "text", "text": prompt_text},
+                        {"type": "image_url", "image_url": {"url": image_data_url}}
+                    ]}
+                ]
+                
+                # Analyze image using Mistral multimodal model
+                response = mistral_client.chat.complete(
+                    model="mistral-large-latest", # Using mistral-large-latest for multimodal capabilities
+                    messages=messages
+                )
+                
+                return Response({
+                    'analysis': response.choices[0].message.content,
+                    'status': 'success'
+                })
             
         except ImportError as e:
+            # This handles missing mistralai or google.generativeai itself
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
-            error_message = f"An error occurred while analyzing the image: {str(e)}"
+            error_message = f"An unexpected error occurred while analyzing the file: {str(e)}"
             if "unauthorized" in str(e).lower() or "api key" in str(e).lower():
-                error_message = "The provided API key is invalid. Please check your Google API key configuration."
+                error_message = "An API key issue occurred. Please check your Mistral API key configuration."
                 return Response({'error': error_message}, status=status.HTTP_401_UNAUTHORIZED)
             
             return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -605,6 +669,9 @@ class StockView(APIView):
             if not report_text:
                 return Response({'error': 'Report text is required'}, status=status.HTTP_400_BAD_REQUEST)
             
+            if not settings.MISTRAL_API_KEY:
+                return Response({'error': 'Mistral API key is not configured in settings.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
             client = self._get_client()
             
             prompt = f"""You are a health and nutrition advisor for Blood Hub Nepal. When analyzing medical reports, follow these rules:
@@ -637,7 +704,7 @@ Please provide:
         except Exception as e:
             error_message = f"An error occurred while communicating with the AI service: {str(e)}"
             if "unauthorized" in str(e).lower() or "api key" in str(e).lower():
-                error_message = "The provided API key is invalid. Please check your API key and try again."
+                error_message = "The provided Mistral API key is invalid or unauthorized. Please check your API key configuration and ensure it has the necessary permissions."
                 return Response({'error': error_message}, status=status.HTTP_401_UNAUTHORIZED)
             
             return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
