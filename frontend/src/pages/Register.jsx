@@ -261,7 +261,7 @@ export default function Register() {
         {/* Info Box */}
         <div className="mt-8 bg-white rounded-2xl shadow p-6 md:hidden">
           <p className="text-sm text-gray-600">
-            <span className="font-semibold text-red-600">BloodSync Nepal</span> - Real-time blood
+            <span className="font-semibold text-red-600">Blood Hub Nepal</span> - Real-time blood
             inventory management connecting donors, hospitals, and blood banks across Nepal.
           </p>
         </div>
