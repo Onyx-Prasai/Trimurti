@@ -28,18 +28,45 @@ const Profile = ({ setIsAuthenticated }) => {
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         email: user.email || '',
-        phone: user.phone_number || '',
+        phone: user.phone_number || user.phone || '',
+        address: user.address || '',
+        city: user.city || 'Kathmandu',
+        blood_group: user.blood_group || 'O+',
       }))
     } else {
       navigate('/login')
     }
   }, [])
 
-  const handleSave = () => {
-    // In real app, make API call to update profile
-    console.log('Saving profile:', formData)
-    setEditing(false)
-    alert('Profile updated successfully!')
+  const handleSave = async () => {
+    setLoading(true)
+    try {
+      // Update user in localStorage
+      const updatedUser = {
+        ...user,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        phone_number: formData.phone,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        blood_group: formData.blood_group,
+      }
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      
+      // In real app, make API call to update profile
+      // const response = await updateProfile(formData)
+      // if (response.ok) { ... }
+      
+      setEditing(false)
+      alert('Profile updated successfully!')
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      alert('Error updating profile. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleLogout = () => {
