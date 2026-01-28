@@ -44,14 +44,11 @@ const Points = () => {
         })
       }
 
-      if (discountRes) {
-        setDiscountRewards(
-          Array.isArray(discountRes.data)
-            ? discountRes.data
-            : discountRes.data.results || []
-        )
+      const apiDiscounts = (discountRes && (Array.isArray(discountRes.data) ? discountRes.data : discountRes.data.results)) || [];
+      if (apiDiscounts.length > 0) {
+        setDiscountRewards(apiDiscounts);
       } else {
-        // Mock data
+        // Mock data for discounts
         setDiscountRewards([
           {
             id: 1,
@@ -144,15 +141,37 @@ const Points = () => {
             stock: 10,
             days_remaining: 69,
           },
-        ])
+          {
+            id: 9,
+            name: 'General Store Discount',
+            business_name: 'Big Mart',
+            business_type: 'Grocery/General',
+            description: '10% off on all groceries',
+            discount_percentage: 10,
+            points_cost: 80,
+            coupon_code: 'BIGMART10',
+            valid_until: '2026-04-15',
+            stock: 25,
+            days_remaining: 79,
+          },
+          {
+            id: 10,
+            name: 'Electronics Store Discount',
+            business_name: 'Electro Hub',
+            business_type: 'Electronics',
+            description: '15% off on selected electronics',
+            points_cost: 300,
+            coupon_code: 'ELECTRO15',
+            valid_until: '2026-05-01',
+            stock: 5,
+            days_remaining: 95,
+          },
+        ]);
       }
 
-      if (medicineRes) {
-        setMedicineRewards(
-          Array.isArray(medicineRes.data)
-            ? medicineRes.data
-            : medicineRes.data.results || []
-        )
+      const apiMedicines = (medicineRes && (Array.isArray(medicineRes.data) ? medicineRes.data : medicineRes.data.results)) || [];
+      if (apiMedicines.length > 0) {
+        setMedicineRewards(apiMedicines);
       } else {
         // Mock data
         setMedicineRewards([
@@ -183,7 +202,25 @@ const Points = () => {
             provider: 'HealthCare Plus',
             stock: 3,
           },
-        ])
+          {
+            id: 4,
+            name: 'Cold & Flu Relief',
+            description: 'Relieves symptoms of cold and flu, including fever and body aches',
+            category: 'Cold & Flu',
+            points_cost: 75,
+            provider: 'PharmaCure',
+            stock: 20,
+          },
+          {
+            id: 5,
+            name: 'Antiseptic Solution',
+            description: 'For cleaning wounds and preventing infection',
+            category: 'First Aid',
+            points_cost: 60,
+            provider: 'MediGuard',
+            stock: 25,
+          },
+        ]);
       }
     } catch (error) {
       console.error('Error fetching data:', error)
