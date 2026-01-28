@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { FaSearch, FaMap, FaList } from 'react-icons/fa'
 import { getStock } from '../utils/api'
 import BloodMapView from '../components/BloodMapView'
+import { mockStockData, mockPredictionsData } from './FindBlood.test'
 
 const FindBlood = () => {
   const [viewMode, setViewMode] = useState('list') // 'list' or 'map'
@@ -22,6 +23,39 @@ const FindBlood = () => {
     return () => clearInterval(interval)
   }, [stockFilters])
 
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      if (searchType === 'hospitals') {
+        const response = await getHospitals(filters)
+        const data = response.data.results || (Array.isArray(response.data) ? response.data : [])
+        setHospitals(data)
+      } else {
+        const response = await getBloodBanks({ city: filters.city })
+        const data = response.data.results || (Array.isArray(response.data) ? response.data : [])
+        setBloodBanks(data)
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchPredictions = async () => {
+    setPredictionsLoading(true)
+    try {
+      const response = await getBloodPredictions()
+      setPredictions(response.data)
+    } catch (error) {
+      console.error('Error fetching predictions:', error)
+      // Use mock data as fallback
+      setPredictions(mockPredictionsData)
+    } finally {
+      setPredictionsLoading(false)
+    }
+  }
+
   const fetchStock = async () => {
     setStockLoading(true)
     try {
@@ -29,6 +63,8 @@ const FindBlood = () => {
       setStock(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
       console.error('Error fetching stock:', error)
+      // Use mock data as fallback
+      setStock(mockStockData)
     } finally {
       setStockLoading(false)
     }
@@ -141,10 +177,10 @@ const FindBlood = () => {
                   {stock.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <p className="font-semibold text-text">{item.hospital?.name}</p>
-                        <p className="text-sm text-gray-500">{item.hospital?.address}</p>
+                        <p className="font-semibold text-text">{item.hospital?.name || item.hospital_name}</p>
+                        <p className="text-sm text-gray-500">{item.hospital?.address || ''}</p>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{item.hospital?.city}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{item.hospital?.city || item.city}</td>
                       <td className="px-4 py-3">
                         <span className="px-3 py-1 bg-primary text-white rounded-full text-sm">
                           {item.blood_group}
@@ -155,9 +191,9 @@ const FindBlood = () => {
                          item.blood_product_type === 'plasma' ? 'Plasma' :
                          item.blood_product_type === 'platelets' ? 'Platelets' : 'Unknown'}
                       </td>
-                      <td className="px-4 py-3 text-lg font-bold text-text">{item.units_available}</td>
+                      <td className="px-4 py-3 text-lg font-bold text-text">{item.units_available || item.units}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">
-                        {new Date(item.updated_at).toLocaleString()}
+                        {new Date(item.updated_at || item.last_updated).toLocaleString()}
                       </td>
                     </tr>
                   ))}
