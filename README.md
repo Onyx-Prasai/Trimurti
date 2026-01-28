@@ -370,7 +370,7 @@ See [HOSPITAL_INTEGRATION_GUIDE.md](HOSPITAL_INTEGRATION_GUIDE.md) for detailed 
 6. Manage donation drives
 
 ---
-
+                                                               
 ## 📊 Database Schema
 
 ### Core Models
