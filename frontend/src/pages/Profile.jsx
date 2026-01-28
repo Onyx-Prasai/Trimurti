@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FaUser, FaEdit, FaSave, FaSignOutAlt } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
+import { getDonorProfile } from '../utils/api'
 
 const Profile = ({ setIsAuthenticated }) => {
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [donor, setDonor] = useState(null)
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     first_name: '',
@@ -33,10 +35,21 @@ const Profile = ({ setIsAuthenticated }) => {
         city: user.city || 'Kathmandu',
         blood_group: user.blood_group || 'O+',
       }))
+      // Fetch donor profile data including points and stats
+      fetchDonorData()
     } else {
       navigate('/login')
     }
   }, [])
+
+  const fetchDonorData = async () => {
+    try {
+      const response = await getDonorProfile(user.id)
+      setDonor(response.data)
+    } catch (error) {
+      console.error('Error fetching donor data:', error)
+    }
+  }
 
   const handleSave = async () => {
     setLoading(true)
@@ -256,15 +269,15 @@ const Profile = ({ setIsAuthenticated }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-sm text-text opacity-70 mb-1">Total Donations</p>
-                <p className="text-2xl font-bold text-primary">0</p>
+                <p className="text-2xl font-bold text-primary">{donor?.total_donations || 0}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-sm text-text opacity-70 mb-1">Lives Saved</p>
-                <p className="text-2xl font-bold text-green-600">0</p>
+                <p className="text-2xl font-bold text-green-600">{donor?.lives_saved || 0}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-sm text-text opacity-70 mb-1">Points</p>
-                <p className="text-2xl font-bold text-yellow-600">0</p>
+                <p className="text-2xl font-bold text-yellow-600">{donor?.points || 0}</p>
               </div>
             </div>
           </div>

@@ -24,6 +24,7 @@ import LegalPrivacy from './pages/LegalPrivacy'
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [darkMode, setDarkMode] = useState(false)
 
   useEffect(() => {
     // Check if user is already logged in
@@ -31,7 +32,33 @@ function App() {
     if (token) {
       setIsAuthenticated(true)
     }
+    
+    // Initialize dark mode from localStorage
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
+    setDarkMode(savedDarkMode)
+    if (savedDarkMode) {
+      document.documentElement.classList.add('dark')
+    }
+    
     setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    // Listen for dark mode changes
+    const handleStorageChange = (e) => {
+      if (e.key === 'darkMode') {
+        const newDarkMode = e.newValue === 'true'
+        setDarkMode(newDarkMode)
+        if (newDarkMode) {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
   if (loading) {

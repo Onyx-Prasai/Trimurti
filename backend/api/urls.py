@@ -6,6 +6,7 @@ from .views import (
     HospitalViewSet, TransactionViewSet, TransactionIngestView, StockView,
     BloodRequestViewSet,
 )
+from .sms_views import SMSViewSet, SMSAPIView
 from .reward_views import (
     MoneyRewardViewSet, DiscountRewardViewSet, DiscountRedemptionViewSet,
     MedicineRewardViewSet, MedicineRedemptionViewSet,
@@ -38,6 +39,9 @@ router.register(r'alerts', StockAlertViewSet, basename='alert')
 router.register(r'donation-drives', DonationDriveViewSet, basename='donation-drive')
 router.register(r'blood-requests', BloodRequestViewSet, basename='blood-request')
 
+# SMS endpoints
+router.register(r'sms', SMSViewSet, basename='sms')
+
 urlpatterns = [
     path('', include(router.urls)),
     
@@ -59,6 +63,9 @@ urlpatterns = [
     # Legacy endpoints
     path('ingest/transactions/', TransactionIngestView.as_view(), name='ingest-transaction-legacy'),
     path('stock/', StockView.as_view(), name='stock'),
+    
+    # SMS direct endpoint
+    path('sms/send/', SMSAPIView.as_view(), name='sms-send'),
 ]
 
 
