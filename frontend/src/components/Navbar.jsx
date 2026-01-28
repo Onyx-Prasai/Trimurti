@@ -14,16 +14,14 @@ const Navbar = ({ isAuthenticated, setIsAuthenticated }) => {
     { path: '/find-blood', label: 'Find Blood', icon: FaTint },
     { path: '/dashboard', label: 'Dashboard', icon: FaChartLine },
     { path: '/ai-health', label: 'AI Health', icon: FaRobot },
-    { path: '/notification', label: 'Notification', icon: FaBell },
     { path: '/points', label: 'Points', icon: FaGift },
-    { path: '/profile', label: 'Profile', icon: FaUser },
   ]
 
   const hamburgerMenuItems = [
     { path: '/', label: 'Home', icon: FaHome },
-    { path: '/find-blood', label: 'Find Blood', icon: FaTint },
     { path: '/blood-prediction', label: 'Blood Prediction', icon: FaChartLine },
     { path: '/blood-request', label: 'Blood Request', icon: FaTint },
+    { path: '/notification', label: 'Alerts', icon: FaBell },
     { path: '/profile', label: 'Profile', icon: FaUser },
   ]
 

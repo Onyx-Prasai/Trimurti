@@ -1,111 +1,65 @@
-# BloodHub Nepal 🩸
+# Trimurti - Blood Management and Donor Reward System
 
-**Real-Time Blood Inventory Management System for Nepal**
+## Introduction
+A comprehensive platform designed to streamline blood donation processes, manage blood stock efficiently, and incentivize donors through a robust reward system. It connects donors, hospitals, and blood banks to ensure timely blood availability and foster a community of regular blood donors.
 
-A comprehensive, privacy-compliant platform that automatically collects and displays real-time blood inventory data from hospitals and blood banks across Nepal. Built with React.js frontend and Django REST Framework backend, integrated with AI for health assistance and ML-based shortage prediction.
+## Features
 
----
+### 1. Donor Management & Engagement
+*   **Donor Profiles**: Personalized profiles for donors, tracking their blood group, donation history, and eligibility.
+*   **Donation Tracking**: Records individual donations, awards points, and provides insights into lives saved.
+*   **Eligibility Check**: Automatically determines donor eligibility based on last donation date.
+*   **Referral System**: Incentivizes new donor sign-ups through referral bonuses.
+*   **Badges & Recognition**: Recognizes and rewards donors with badges based on their donation milestones.
+*   **Location-Based Services**: Allows donors to share their location for efficient matching with nearby blood requests, with privacy consent.
 
-## 🌟 Key Features
+### 2. Blood Request & Supply Management
+*   **Hospital Blood Requests**: Hospitals can submit urgent blood requests with details on blood type, product, and urgency.
+*   **Emergency Blood Requests**: Users can initiate emergency blood requests, triggering SMS notifications to nearby matching donors.
+*   **Blood Stock Dashboard**: Real-time overview of blood stock levels across participating hospitals and blood banks.
+*   **Automated Stock Ingestion**: Hospitals can integrate to automatically update blood stock levels via API, recording all transactions.
+*   **Low Stock Alerts**: Proactive notifications for hospitals when blood stock falls below critical thresholds.
+*   **Find Blood Banks**: Locate nearby blood banks with contact information and operating hours.
+*   **Blood Needs Prediction**: Utilizes predictive analysis to forecast regional blood requirements, aiding in proactive resource allocation.
+*   **Donation Drives**: Management and tracking of planned blood donation campaigns, including target collection and progress.
 
-### 🏥 BloodHub Nepal Core Features
-- **Real-Time Blood Inventory**: Live tracking of blood stock across all registered hospitals
-- **Public Search Dashboard**: Citizens can search for blood availability by type and location
-- **Secure Hospital Integration**: API-based integration with hospital management systems
-- **Privacy-Compliant**: Only aggregated data (NO personal information)
-- **Alert System**: Automatic low-stock alerts and donation drive suggestions
-- **Interactive Map**: Visual representation of blood availability across Nepal
-- **Admin Analytics**: National and regional blood stock analytics for health authorities
+### 3. Reward System
+*   **Points for Donations**: Donors earn points for each successful blood donation.
+*   **Money Rewards**: Redeem earned points for cash through platforms like Esewa.
+*   **Discount Rewards**: Unlock exclusive discounts from various businesses (restaurants, pharmacies, etc.) using points.
+*   **Medicine/Healthcare Product Rewards**: Exchange points for essential medicines or healthcare products.
 
-### 🎯 Blood Hub Features (Donor Platform)
-- 🏠 **Home Page**: Hero section with real-time counters, feature grid, and call-to-action
-- 🩸 **Find Blood**: Search for hospitals and blood banks by location, blood type, and name
-- 📊 **Dashboard**: Track donations, view 56-day calendar, and earned badges
-- 🤖 **AI Health Assistant**: Chat with AI and analyze medical reports with Nepalese dietary recommendations
-- 🔔 **Notifications**: Get alerts for critical blood needs
-- 🎁 **Points & Rewards**: Earn points for donations, redeem items, and refer friends
-- 👤 **Profile**: Manage personal information and view statistics
-- 🩸 **Blood Group Selection**: Modal popup after login to collect blood group information (A+, A-, B+, B-, AB+, AB-, O+, O-)
+### 4. AI-Powered Health Assistant
+*   **Interactive Chatbot**: An AI assistant (powered by Mistral AI) providing health tips, nutritional advice, and answers to blood donation-related queries, with a focus on natural remedies and Nepalese dietary context.
+*   **Blood Report Analysis**: Upload blood report images or PDFs for AI-driven analysis, offering personalized health insights, dietary recommendations, lifestyle tips, and wellness advice, while strictly avoiding medical diagnoses or prescriptions.
 
----
+### 5. Multi-User Architecture
+*   **Donor Accounts**: Standard user accounts for blood donors.
+*   **Hospital Accounts**: Dedicated accounts for hospitals to manage requests and stock.
+*   **Blood Bank Accounts**: Accounts for blood banks to manage their operations.
+*   **Admin Accounts**: Administrative access for platform management.
 
-## 🏗️ System Architecture
+## How it Works
 
-```
-┌─────────────────┐
-│   Hospitals     │──┐
-│  (API Clients)  │  │
-└─────────────────┘  │
-                     │  HTTPS + API Key
-┌─────────────────┐  │  Authentication
-│  Blood Banks    │──┤
-└─────────────────┘  │
-                     ▼
-              ┌──────────────────┐
-              │  BloodSync API   │
-              │   (Django DRF)   │
-              └──────────────────┘
-                     │
-          ┌──────────┼──────────┐
-          ▼          ▼          ▼
-    ┌─────────┐ ┌────────┐ ┌────────┐
-    │  Stock  │ │ Trans- │ │ Alerts │
-    │ Manager │ │ actions│ │ System │
-    └─────────┘ └────────┘ └────────┘
-          │          │          │
-          └──────────┼──────────┘
-                     ▼
-              ┌──────────────┐
-              │   Database   │
-              │  (SQLite/PG) │
-              └──────────────┘
-                     │
-                     ▼
-              ┌──────────────┐
-              │ Public API   │
-              └──────────────┘
-                     │
-                     ▼
-              ┌──────────────┐
-              │React Frontend│
-              │  Dashboard   │
-              └──────────────┘
-```
+### Frontend (User Interface)
+The frontend, built with React, provides an intuitive and responsive user experience:
+*   **Dashboard**: A personalized hub for donors to view their donation history, points, badges, and recent activities.
+*   **Blood Request/Find Blood**: Interfaces for requesting blood or searching for available blood/blood banks using filters and map views.
+*   **AI Health**: A dedicated section for interacting with the AI chatbot and uploading blood reports for analysis.
+*   **Rewards**: A catalog of available rewards (money, discounts, medicines) where users can browse and redeem their points.
+*   **Profile & Settings**: Users can manage their personal information, location consent, and security settings.
 
----
+### Backend (API & Business Logic)
+The backend, powered by Django REST Framework, handles all data management, business logic, and third-party integrations:
+*   **User & Profile Management**: Securely manages user authentication, donor profiles, and specific profiles for hospitals, blood banks, and administrators.
+*   **Data Models**: Robust data models (using Django ORM) for Donors, Hospitals, Blood Banks, Donations, Blood Requests, Rewards, Stock, Transactions, and more.
+*   **API Endpoints**: A comprehensive set of RESTful APIs to facilitate communication between the frontend and backend, enabling all core functionalities.
+*   **SMS Service Integration**: Integrates with an SMS gateway (e.g., Twilio) to send timely notifications to potential donors for emergency blood requests, utilizing location-based matching.
+*   **AI Integration**: Connects with Mistral AI for the health assistant chatbot and blood report analysis features, ensuring responsible and health-focused recommendations.
+*   **Blood Stock Logic**: Manages the append-only transaction ledger and materialized blood stock views, updating in real-time as hospitals ingest data.
+*   **Prediction Engine**: Processes historical data to predict future blood needs, exposed via an API endpoint.
 
-## 💻 Tech Stack
-
-### Frontend
-- **React.js** 18.2.0 - UI framework
-- **Tailwind CSS** 3.3.6 - Styling
-- **Framer Motion** 10.16.16 - Animations
-- **React Router DOM** 6.20.0 - Routing
-- **Axios** 1.6.2 - HTTP client
-- **Vite** 5.0.8 - Build tool
-- **Leaflet** - Map visualization
-
-### Backend
-- **Django** 6.0 - Web framework
-- **Django REST Framework** 3.16.1 - API framework
-- **Django CORS Headers** - Cross-origin requests
-- **SQLite** (development) / **PostgreSQL** (production)
-- **Celery** + **Redis** (planned for background tasks)
-
-### Security
-- Custom API Key Authentication (SHA-256)
-- HTTPS/TLS encryption
-- Rate limiting
-- CORS configuration
-- Input validation & sanitization
-
-### AI/ML
-- **Google Gemini AI** - Health chatbot
-- **Time-series forecasting** (planned) - Shortage prediction
-
----
-
-## 📋 Setup Instructions
+## Getting Started
 
 ### Prerequisites
 - Python 3.10+

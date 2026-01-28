@@ -218,23 +218,27 @@ class DonorProfileViewSet(viewsets.ModelViewSet):
                     'by_blood_type': list(by_blood_type),
                     'by_urgency': list(by_urgency),
                 })
+        donation_points = 500
+        referral_points = 100
+
         donation = Donation.objects.create(
             donor=donor,
             hospital=hospital,
             donation_date=timezone.now().date(),
+            points_awarded=donation_points,
             confirmed=True
         )
         
         # Update donor profile
         donor.last_donation_date = timezone.now().date()
         donor.total_donations += 1
-        donor.points += 100
+        donor.points += donation_points
         donor.save()
         
         # Award referral bonus if applicable
         if donor.referred_by:
             referrer = donor.referred_by
-            referrer.points += 20
+            referrer.points += referral_points
             referrer.save()
         
         return Response(DonationSerializer(donation).data)
