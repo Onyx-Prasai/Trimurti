@@ -20,6 +20,7 @@ import BloodDonationProfile from './pages/BloodDonationProfile'
 import PaymentMethods from './pages/PaymentMethods'
 import HelpSupport from './pages/HelpSupport'
 import LegalPrivacy from './pages/LegalPrivacy'
+import Footer from './components/Footer'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -90,6 +91,7 @@ function App() {
           <Route path="/settings/help" element={isAuthenticated ? <HelpSupport /> : <Navigate to="/login" />} />
           <Route path="/settings/legal" element={isAuthenticated ? <LegalPrivacy /> : <Navigate to="/login" />} />
         </Routes>
+        <Footer />
       </div>
     </Router>
   )

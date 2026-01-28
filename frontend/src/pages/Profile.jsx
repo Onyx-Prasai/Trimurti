@@ -298,7 +298,7 @@ const Profile = ({ setIsAuthenticated }) => {
 
             <div>
               <label className="block text-sm font-medium text-text mb-2">
-                City
+                District
               </label>
               {editing ? (
                 <select

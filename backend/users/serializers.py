@@ -43,7 +43,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'last_name': {'required': False},
             'phone_number': {'required': False},
             'location': {'required': False},
-            'user_type': {'required': True},
+            # Registration in the app is donor-only; default to base_user if omitted
+            'user_type': {'required': False},
         }
     
     def validate_password(self, value):
@@ -60,6 +61,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password2')
         password = validated_data.pop('password')
+        validated_data.setdefault('user_type', 'base_user')
         
         user = User.objects.create(**validated_data)
         user.set_password(password)

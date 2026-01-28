@@ -17,12 +17,12 @@ const Navbar = ({ isAuthenticated, setIsAuthenticated }) => {
     { path: '/points', label: 'Points', icon: FaGift },
   ]
 
+  // Mobile hamburger menu (no Home here; Profile is primary entry)
   const hamburgerMenuItems = [
-    { path: '/', label: 'Home', icon: FaHome },
+    { path: '/profile', label: 'Profile', icon: FaUser },
     { path: '/blood-prediction', label: 'Blood Prediction', icon: FaChartLine },
     { path: '/blood-request', label: 'Blood Request', icon: FaTint },
     { path: '/notification', label: 'Alerts', icon: FaBell },
-    { path: '/profile', label: 'Profile', icon: FaUser },
   ]
 
   const settingsMenuItems = [
