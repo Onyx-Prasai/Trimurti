@@ -34,10 +34,15 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=User.objects.all())]
     )
+    referral_code = serializers.CharField(
+        required=False,
+        write_only=True,
+        help_text="Referral code from an existing donor"
+    )
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password2', 'user_type', 'first_name', 'last_name', 'phone_number', 'location']
+        fields = ['username', 'email', 'password', 'password2', 'user_type', 'first_name', 'last_name', 'phone_number', 'location', 'referral_code']
         extra_kwargs = {
             'first_name': {'required': False},
             'last_name': {'required': False},
@@ -61,6 +66,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password2')
         password = validated_data.pop('password')
+        # Remove referral_code as it's not a User field (it's for DonorProfile)
+        validated_data.pop('referral_code', None)
         validated_data.setdefault('user_type', 'base_user')
         
         user = User.objects.create(**validated_data)

@@ -38,6 +38,7 @@ class DonorProfileSerializer(serializers.ModelSerializer):
     days_until_next = serializers.SerializerMethodField()
     lives_saved = serializers.SerializerMethodField()
     badges = serializers.SerializerMethodField()
+    referrals = serializers.SerializerMethodField()
     
     class Meta:
         model = DonorProfile
@@ -54,6 +55,10 @@ class DonorProfileSerializer(serializers.ModelSerializer):
     
     def get_badges(self, obj):
         return obj.get_badges()
+    
+    def get_referrals(self, obj):
+        """Return list of users referred by this donor"""
+        return [{'username': r.user.username, 'id': r.id} for r in obj.referrals.all()]
 
 
 class HospitalReqSerializer(serializers.ModelSerializer):

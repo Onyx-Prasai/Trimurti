@@ -2,8 +2,24 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 import uuid
+import random
+import string
 
 User = get_user_model()
+
+def generate_referral_code():
+    """Generate a simple referral code like 'BLOODZKMS' and ensure uniqueness."""
+    from django.apps import apps
+    DonorProfile = apps.get_model('api', 'DonorProfile')
+
+    for _ in range(25):
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        referral_code = f"BLOOD{code}"
+        if not DonorProfile.objects.filter(referral_code=referral_code).exists():
+            return referral_code
+
+    # Fallback to UUID-based suffix if collisions persist
+    return f"BLOOD{uuid.uuid4().hex[:6].upper()}"
 
 BLOOD_GROUP_CHOICES = [
     ('A+', 'A+'),
@@ -99,7 +115,7 @@ class DonorProfile(models.Model):
     blood_product_type = models.CharField(max_length=20, choices=BLOOD_PRODUCT_CHOICES, default='whole_blood')
     points = models.IntegerField(default=0)
     last_donation_date = models.DateField(null=True, blank=True)
-    referral_code = models.CharField(max_length=20, unique=True, default=uuid.uuid4)
+    referral_code = models.CharField(max_length=20, unique=True, default=generate_referral_code)
     referred_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='referrals')
     total_donations = models.IntegerField(default=0)
     phone = models.CharField(max_length=15, blank=True)

@@ -9,6 +9,7 @@ export default function Register() {
     password2: '',
     first_name: '',
     last_name: '',
+    referral_code: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,7 @@ export default function Register() {
           password2: formData.password2,
           first_name: formData.first_name,
           last_name: formData.last_name,
+          referral_code: formData.referral_code,
         }),
       });
 
@@ -212,6 +214,21 @@ export default function Register() {
                 placeholder="Confirm your password"
                 required
                 value={formData.password2}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl transition-all focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="referral_code" className="block text-sm font-semibold text-gray-700 mb-2">
+                Referral Code <span className="text-gray-500 text-xs">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                name="referral_code"
+                id="referral_code"
+                placeholder="Enter referral code if you have one"
+                value={formData.referral_code}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl transition-all focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
               />

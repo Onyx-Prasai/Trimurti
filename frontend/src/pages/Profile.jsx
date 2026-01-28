@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FaUser, FaEdit, FaSave, FaSignOutAlt } from 'react-icons/fa'
+import { FaUser, FaEdit, FaSave, FaSignOutAlt, FaCopy, FaCheck } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import { getDonorProfile } from '../utils/api'
 
@@ -8,6 +8,7 @@ const Profile = ({ setIsAuthenticated }) => {
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState(false)
   const [donor, setDonor] = useState(null)
+  const [copied, setCopied] = useState(false)
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     first_name: '',
@@ -90,6 +91,14 @@ const Profile = ({ setIsAuthenticated }) => {
       alert('Error updating profile. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const copyReferralCode = () => {
+    if (donor?.referral_code) {
+      navigator.clipboard.writeText(donor.referral_code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -329,6 +338,48 @@ const Profile = ({ setIsAuthenticated }) => {
               ) : (
                 <p className="text-text">{formData.address || 'N/A'}</p>
               )}
+            </div>
+          </div>
+
+          {/* Referral Code Section */}
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <h3 className="text-xl font-bold text-text mb-4">Refer Friends & Earn Points</h3>
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-6">
+              <p className="text-sm text-gray-600 mb-3">
+                Share your referral code with friends. When they register and donate blood, you'll earn <span className="font-bold text-red-600">100 bonus points</span>!
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-2">Your Referral Code</label>
+                  <div className="bg-white border-2 border-red-200 rounded-lg px-4 py-3">
+                    <p className="text-2xl font-bold text-red-600 tracking-wider">{donor?.referral_code || 'Loading...'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={copyReferralCode}
+                  className={`mt-6 flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+                    copied 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  {copied ? (
+                    <>
+                      <FaCheck className="w-5 h-5" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaCopy className="w-5 h-5" />
+                      <span>Copy Code</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
+                <span>🎁</span>
+                <span>You've referred <span className="font-bold text-red-600">{donor?.referrals?.length || 0}</span> friends</span>
+              </div>
             </div>
           </div>
 

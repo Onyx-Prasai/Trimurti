@@ -6,6 +6,8 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
+from django.db import transaction as db_transaction
+from urllib.parse import urlparse, parse_qs
 import logging
 
 logger = logging.getLogger(__name__)
@@ -75,10 +77,35 @@ def register_view(request):
             from api.models import DonorProfile
             donor_profile, created = DonorProfile.objects.get_or_create(user=user)
             
+            # Handle referral code (accept raw code or full referral link)
+            referral_code = request.data.get('referral_code')
+            if referral_code:
+                referral_code = str(referral_code).strip()
+                if 'ref=' in referral_code or 'referral_code=' in referral_code:
+                    try:
+                        parsed = urlparse(referral_code)
+                        params = parse_qs(parsed.query)
+                        referral_code = (params.get('ref') or params.get('referral_code') or [referral_code])[0]
+                    except Exception:
+                        referral_code = referral_code
+                try:
+                    referrer = DonorProfile.objects.get(referral_code=referral_code)
+                    if referrer != donor_profile:
+                        with db_transaction.atomic():
+                            donor_profile.referred_by = referrer
+                            donor_profile.points += 100
+                            referrer.points += 100
+                            referrer.save()
+                            donor_profile.save()
+                        logger.info(f"User {user.username} referred by {referrer.user.username}")
+                except DonorProfile.DoesNotExist:
+                    logger.warning(f"Invalid referral code: {referral_code}")
+            
             # Update phone number if provided (only if not already set)
             if user.phone_number and not donor_profile.phone:
                 donor_profile.phone = user.phone_number
-                donor_profile.save()
+            
+            donor_profile.save()
         elif user.user_type == 'hospital':
             HospitalProfile.objects.get_or_create(
                 user=user,
