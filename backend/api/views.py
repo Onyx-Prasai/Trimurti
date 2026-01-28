@@ -238,6 +238,57 @@ class DonorProfileViewSet(viewsets.ModelViewSet):
             referrer.save()
         
         return Response(DonationSerializer(donation).data)
+    
+    @action(detail=True, methods=['post'])
+    def update_location(self, request, pk=None):
+        """
+        Update donor location (latitude, longitude) and enable location consent
+        """
+        donor = self.get_object()
+        
+        latitude = request.data.get('latitude')
+        longitude = request.data.get('longitude')
+        location_consent = request.data.get('location_consent', True)
+        
+        if latitude is None or longitude is None:
+            return Response({
+                'error': 'latitude and longitude are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            latitude = float(latitude)
+            longitude = float(longitude)
+        except (ValueError, TypeError):
+            return Response({
+                'error': 'latitude and longitude must be valid numbers'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate coordinates
+        if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+            return Response({
+                'error': 'Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update donor location
+        donor.latitude = latitude
+        donor.longitude = longitude
+        donor.location_consent = location_consent
+        if location_consent:
+            from django.utils import timezone
+            donor.location_verified_at = timezone.now()
+        donor.save()
+        
+        # Also update user phone if provided and not already set
+        phone_number = request.data.get('phone_number')
+        if phone_number and not donor.phone:
+            donor.phone = phone_number
+            donor.save()
+        
+        serializer = self.get_serializer(donor)
+        return Response({
+            'message': 'Location updated successfully',
+            'donor': serializer.data
+        }, status=status.HTTP_200_OK)
 
 
 class HospitalReqViewSet(viewsets.ModelViewSet):
@@ -666,47 +717,101 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
 
     def _notify_matching_donors(self, blood_request):
-        donors = DonorProfile.objects.filter(
-            blood_group=blood_request.blood_type,
-            district__iexact=blood_request.district,
-        ).exclude(phone__isnull=True).exclude(phone__exact='')
-
+        """
+        Notify matching donors using location-based radius search.
+        Starts with 500m radius and expands if needed.
+        """
+        from .utils import find_donors_within_radius
+        from .sms_service import send_sms
+        
         summary = {
-            'matched': donors.count(),
+            'matched': 0,
             'sent': 0,
             'failed': 0,
+            'radius_used': 0,
+            'method': 'location_based'
         }
-
+        
         location_text = blood_request.location or f"{blood_request.city}, {blood_request.district}".strip(', ')
-        message_text = (
-            "URGENT BLOOD REQUEST\n\n"
-            f"Blood Type: {blood_request.blood_type}\n"
-            f"Location: {location_text}\n"
-            f"Urgency: {blood_request.urgency}\n\n"
-            "Your blood type matches! Please help save lives. Contact the hospital immediately.\n\n"
-            "Reply STOP to unsubscribe."
-        )
-
-        for donor in donors:
-            sent = send_blood_request_sms(
-                donor.phone,
-                blood_request.blood_type,
-                location_text,
-                blood_request.urgency,
+        
+        # Try location-based matching if coordinates are available
+        if blood_request.latitude and blood_request.longitude:
+            result = find_donors_within_radius(
+                request_lat=blood_request.latitude,
+                request_lon=blood_request.longitude,
+                blood_type=blood_request.blood_type,
+                radius_meters=500,  # Start with 500m
+                max_radius_meters=10000  # Max 10km
             )
-
+            
+            donors = result['donors']
+            summary['matched'] = result['total_found']
+            summary['radius_used'] = result['radius_used']
+            summary['method'] = 'location_based'
+        else:
+            # Fallback to district-based matching if no coordinates
+            donors = DonorProfile.objects.filter(
+                blood_group=blood_request.blood_type,
+                district__iexact=blood_request.district,
+            ).exclude(phone__isnull=True).exclude(phone__exact='')
+            summary['matched'] = donors.count()
+            summary['method'] = 'district_based'
+        
+        # Convert radius to readable format
+        radius_text = ""
+        if summary['radius_used']:
+            if summary['radius_used'] < 1000:
+                radius_text = f"{summary['radius_used']}m"
+            else:
+                radius_text = f"{summary['radius_used']/1000:.1f}km"
+        
+        # Send SMS to each matching donor
+        for donor in donors:
+            # Create custom message based on location
+            if summary['method'] == 'location_based' and radius_text:
+                message_text = (
+                    f"🩸 URGENT BLOOD REQUEST 🩸\n\n"
+                    f"Blood Type: {blood_request.blood_type}\n"
+                    f"Hospital: {blood_request.hospital_name}\n"
+                    f"Location: {location_text}\n"
+                    f"Distance: Within {radius_text} from you\n"
+                    f"Urgency: {blood_request.urgency}\n"
+                    f"Units Needed: {blood_request.units_needed}\n\n"
+                    f"Your blood type matches and you're nearby! "
+                    f"Please help save lives. Contact the hospital immediately.\n\n"
+                    f"Contact: {blood_request.contact_number}\n"
+                    f"Reply STOP to unsubscribe."
+                )
+            else:
+                message_text = (
+                    f"🩸 URGENT BLOOD REQUEST 🩸\n\n"
+                    f"Blood Type: {blood_request.blood_type}\n"
+                    f"Hospital: {blood_request.hospital_name}\n"
+                    f"Location: {location_text}\n"
+                    f"Urgency: {blood_request.urgency}\n"
+                    f"Units Needed: {blood_request.units_needed}\n\n"
+                    f"Your blood type matches! Please help save lives. "
+                    f"Contact the hospital immediately.\n\n"
+                    f"Contact: {blood_request.contact_number}\n"
+                    f"Reply STOP to unsubscribe."
+                )
+            
+            # Send SMS
+            result = send_sms(donor.phone, message_text)
+            
+            # Log the SMS
             SMSNotificationLog.objects.create(
                 blood_request=blood_request,
                 recipient=donor.user if donor.user_id else None,
                 phone_number=donor.phone,
                 message=message_text,
-                status='sent' if sent else 'failed',
+                status='sent' if result['success'] else 'failed',
             )
-
-            if sent:
+            
+            if result['success']:
                 summary['sent'] += 1
             else:
                 summary['failed'] += 1
-
+        
         return summary
 

@@ -255,8 +255,8 @@ class BloodRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = BloodRequest
         fields = [
-            'id', 'hospital_name', 'district', 'city', 'location', 'blood_type',
-            'blood_product', 'urgency', 'units_needed', 'contact_number',
+            'id', 'hospital_name', 'district', 'city', 'location', 'latitude', 'longitude',
+            'blood_type', 'blood_product', 'urgency', 'units_needed', 'contact_number',
             'contact_person', 'status', 'created_by', 'created_by_name',
             'created_at', 'updated_at', 'sms_logs'
         ]

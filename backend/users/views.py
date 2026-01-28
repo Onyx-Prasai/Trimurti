@@ -73,7 +73,12 @@ def register_view(request):
         # Create a profile based on user_type
         if user.user_type == 'base_user':
             from api.models import DonorProfile
-            DonorProfile.objects.get_or_create(user=user)
+            donor_profile, created = DonorProfile.objects.get_or_create(user=user)
+            
+            # Update phone number if provided (only if not already set)
+            if user.phone_number and not donor_profile.phone:
+                donor_profile.phone = user.phone_number
+                donor_profile.save()
         elif user.user_type == 'hospital':
             HospitalProfile.objects.get_or_create(
                 user=user,
