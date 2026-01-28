@@ -30,6 +30,47 @@ export default function Login({ setIsAuthenticated }) {
         localStorage.setItem('user', JSON.stringify(data.user));
         setUserData(data);
         setIsAuthenticated(true);
+
+        // Only show blood group modal for donor users who don't already have a blood group saved
+        const loggedInUser = data?.user || {};
+        const isDonorUser = (loggedInUser.user_type || 'base_user') === 'base_user';
+
+        const existingUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const cachedBloodGroup = existingUser?.blood_group;
+
+        if (!isDonorUser || cachedBloodGroup) {
+          navigate('/dashboard');
+          return;
+        }
+
+        // If login payload doesn't include blood group, fetch donor profile to check if it's already set
+        try {
+          const token = data.token;
+          const donorRes = await fetch(`/api/donors/${loggedInUser.id}/`, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Token ${token}`,
+            },
+          });
+
+          if (donorRes.ok) {
+            const donorProfile = await donorRes.json();
+            if (donorProfile?.blood_group) {
+              localStorage.setItem(
+                'user',
+                JSON.stringify({ ...existingUser, blood_group: donorProfile.blood_group })
+              );
+              navigate('/dashboard');
+              return;
+            }
+          }
+        } catch {
+          // If we can't verify, don't block existing users with the modal
+          navigate('/dashboard');
+          return;
+        }
+
+        // No blood group yet → ask once
         setShowBloodGroupModal(true);
       } else {
         setError(data.detail || 'Login failed. Please try again.');

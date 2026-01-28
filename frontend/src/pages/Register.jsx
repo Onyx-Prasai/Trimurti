@@ -5,7 +5,6 @@ export default function Register() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    user_type: '',
     password: '',
     password2: '',
     first_name: '',
@@ -45,7 +44,6 @@ export default function Register() {
           email: formData.email,
           password: formData.password,
           password2: formData.password2,
-          user_type: formData.user_type,
           first_name: formData.first_name,
           last_name: formData.last_name,
         }),
@@ -185,26 +183,6 @@ export default function Register() {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl transition-all focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
               />
-            </div>
-
-            <div>
-              <label htmlFor="user_type" className="block text-sm font-semibold text-gray-700 mb-2">
-                User Type
-              </label>
-              <select
-                name="user_type"
-                id="user_type"
-                required
-                value={formData.user_type}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl transition-all focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100 bg-white"
-              >
-                <option value="">Select User Type</option>
-                <option value="base_user">Donor</option>
-                <option value="hospital">Hospital</option>
-                <option value="bloodbank">Blood Bank</option>
-                <option value="admin">Admin</option>
-              </select>
             </div>
 
             <div>

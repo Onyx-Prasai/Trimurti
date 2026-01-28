@@ -95,6 +95,7 @@ const Home = () => {
       link: '/ai-health',
       color: 'bg-blue-100 text-blue-600',
     },
+    
   ]
 
   return (
