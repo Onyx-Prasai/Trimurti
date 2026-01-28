@@ -159,3 +159,7 @@ AUTH_USER_MODEL = 'users.User'
 # Set the MISTRAL_API_KEY environment variable to enable AI features.
 MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY', '')
 
+# Google API Key (For Vision AI)
+# Set the GOOGLE_API_KEY environment variable to enable image analysis features.
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', '')
+

@@ -2,11 +2,12 @@ import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import Logo from './Logo'
-import { FaHome, FaTint, FaChartLine, FaRobot, FaBell, FaGift, FaUser, FaSignInAlt, FaSignOutAlt, FaBars, FaTimes, FaCog } from 'react-icons/fa'
+import { FaHome, FaTint, FaChartLine, FaRobot, FaBell, FaGift, FaUser, FaSignInAlt, FaSignOutAlt, FaBars, FaTimes, FaCog, FaCreditCard, FaQuestionCircle, FaFileAlt, FaShieldAlt, FaLanguage, FaMoon } from 'react-icons/fa'
 
 const Navbar = ({ isAuthenticated, setIsAuthenticated }) => {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const authenticatedNavItems = [
     { path: '/', label: 'Home', icon: FaHome },
@@ -24,8 +25,61 @@ const Navbar = ({ isAuthenticated, setIsAuthenticated }) => {
     { path: '/blood-prediction', label: 'Blood Prediction', icon: FaChartLine },
     { path: '/blood-request', label: 'Blood Request', icon: FaTint },
     { path: '/profile', label: 'Profile', icon: FaUser },
-    { path: '/settings', label: 'Settings', icon: FaCog },
   ]
+
+  const settingsMenuItems = [
+    { label: 'Account Settings', icon: FaUser, action: 'account' },
+    { label: 'Privacy & Security', icon: FaShieldAlt, action: 'security' },
+    { label: 'Notification Settings', icon: FaBell, action: 'notifications' },
+    { label: 'Blood Donation Profile', icon: FaTint, action: 'donation' },
+    { label: 'Payment Methods', icon: FaCreditCard, action: 'payment' },
+    { label: 'Language', icon: FaLanguage, action: 'language' },
+    { label: 'Dark Mode', icon: FaMoon, action: 'darkmode' },
+    { label: 'Help & Support', icon: FaQuestionCircle, action: 'help' },
+    { label: 'Legal & Privacy Policy', icon: FaFileAlt, action: 'legal' },
+  ]
+
+  const handleSettingAction = (action) => {
+    try {
+      switch(action) {
+        case 'account':
+          window.location.href = '/settings/account'
+          break
+        case 'security':
+          window.location.href = '/settings/security'
+          break
+        case 'notifications':
+          console.log('Notification settings - navigate to main settings')
+          window.location.href = '/settings'
+          break
+        case 'donation':
+          window.location.href = '/settings/donation'
+          break
+        case 'payment':
+          window.location.href = '/settings/payment'
+          break
+        case 'language':
+          console.log('Language settings - navigate to main settings')
+          window.location.href = '/settings'
+          break
+        case 'darkmode':
+          console.log('Dark mode - navigate to main settings')
+          window.location.href = '/settings'
+          break
+        case 'help':
+          window.location.href = '/settings/help'
+          break
+        case 'legal':
+          window.location.href = '/settings/legal'
+          break
+        default:
+          break
+      }
+      setSettingsOpen(false)
+    } catch (error) {
+      console.error('Error in handleSettingAction:', error)
+    }
+  }
 
   const publicNavItems = [
     { path: '/', label: 'Home', icon: FaHome },
@@ -153,6 +207,47 @@ const Navbar = ({ isAuthenticated, setIsAuthenticated }) => {
                   </Link>
                 )
               })}
+              
+              {/* Settings Dropdown */}
+              <div className="border-t border-gray-200 pt-2 mt-2">
+                <button
+                  onClick={() => setSettingsOpen(!settingsOpen)}
+                  className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex items-center space-x-3 ${
+                    settingsOpen
+                      ? 'bg-primary text-white'
+                      : 'text-text hover:bg-gray-100'
+                  }`}
+                >
+                  <FaCog className="w-5 h-5" />
+                  <span>Settings</span>
+                  <span className="ml-auto text-xs">{settingsOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {/* Settings Submenu */}
+                {settingsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-1 space-y-1 bg-gray-50 rounded-lg"
+                  >
+                    {settingsMenuItems.map((item) => {
+                      const Icon = item.icon
+                      return (
+                        <button
+                          key={item.action}
+                          onClick={() => handleSettingAction(item.action)}
+                          className="w-full text-left px-6 py-2 rounded-lg text-text hover:bg-gray-200 transition-colors flex items-center space-x-3"
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span className="text-sm">{item.label}</span>
+                        </button>
+                      )
+                    })}
+                  </motion.div>
+                )}
+              </div>
+
               <button
                 onClick={() => {
                   handleLogout()
