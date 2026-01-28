@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet'
+import { useEffect, useMemo, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
 import { motion } from 'framer-motion'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -44,6 +44,21 @@ const createCustomIcon = (stockLevel) => {
   })
 }
 
+const MapAutoFit = ({ enabled, points }) => {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!enabled) return
+    if (!points || points.length === 0) return
+
+    const bounds = L.latLngBounds(points.map(([lat, lng]) => L.latLng(lat, lng)))
+    // Small padding so markers are not on the edge
+    map.fitBounds(bounds, { padding: [40, 40] })
+  }, [enabled, map, points])
+
+  return null
+}
+
 const BloodMapView = ({ bloodGroup, selectedCity, showRadiusDemo = false }) => {
   const [hospitals, setHospitals] = useState([])
   const [loading, setLoading] = useState(true)
@@ -72,10 +87,12 @@ const BloodMapView = ({ bloodGroup, selectedCity, showRadiusDemo = false }) => {
   const fetchMapData = async () => {
     setLoading(true)
     try {
-      const cities = selectedCity ? selectedCity : 'Kathmandu,Bhaktapur,Lalitpur,Pokhara'
-      const response = await axios.get(
-        `http://localhost:8000/api/v1/public/map-data/?cities=${cities}`
-      )
+      // If no city selected, request ALL cities (omit the cities filter entirely)
+      const url = selectedCity
+        ? `http://localhost:8000/api/v1/public/map-data/?cities=${encodeURIComponent(selectedCity)}`
+        : `http://localhost:8000/api/v1/public/map-data/`
+
+      const response = await axios.get(url)
       setHospitals(response.data.hospitals || [])
     } catch (error) {
       console.error('Error fetching map data:', error)
@@ -105,6 +122,14 @@ const BloodMapView = ({ bloodGroup, selectedCity, showRadiusDemo = false }) => {
     if (!bloodGroup) return true
     return hospital.stock[bloodGroup] !== undefined && hospital.stock[bloodGroup] > 0
   })
+
+  const markerPoints = useMemo(
+    () =>
+      filteredHospitals
+        .filter((h) => h?.position?.lat && h?.position?.lng)
+        .map((h) => [h.position.lat, h.position.lng]),
+    [filteredHospitals]
+  )
 
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -142,6 +167,9 @@ const BloodMapView = ({ bloodGroup, selectedCity, showRadiusDemo = false }) => {
             className="h-[500px] w-full"
             scrollWheelZoom={true}
           >
+            {/* If user didn't pick a city, fit the map to all markers so non-Kathmandu hospitals are visible */}
+            <MapAutoFit enabled={!selectedCity} points={markerPoints} />
+
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

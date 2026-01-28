@@ -105,7 +105,65 @@ const Profile = ({ setIsAuthenticated }) => {
   }
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-  const cities = ['Kathmandu', 'Bhaktapur', 'Lalitpur']
+  // Keep this aligned with backend `DonorProfile.DISTRICTS`
+  const cities = [
+    // Bagmati Province
+    'Kathmandu',
+    'Bhaktapur',
+    'Lalitpur',
+    'Kavre',
+    'Nuwakot',
+    'Rasuwa',
+    'Sindhuli',
+    'Ramechhap',
+    'Dolakha',
+    'Makwanpur',
+    // Eastern Region
+    'Ilam',
+    'Jhapa',
+    'Morang',
+    'Sunsari',
+    'Dhankuta',
+    'Terhathum',
+    'Panchthar',
+    'Udayapur',
+    'Sankhuwasabha',
+    'Sindhupalchok',
+    // Central Region
+    'Gorkha',
+    'Lamjung',
+    'Tanahu',
+    'Chitwan',
+    'Nawalpur',
+    'Parsa',
+    'Bara',
+    'Rautahat',
+    'Gulmi',
+    'Arghakhanchi',
+    // Western Region
+    'Palpa',
+    'Dang',
+    'Banke',
+    'Bardiya',
+    'Surkhet',
+    // Mid-Western Region
+    'Salyan',
+    'Pyuthan',
+    'Rolpa',
+    'Rukum',
+    'Dailekh',
+    'Jumla',
+    'Kalikot',
+    'Dolpa',
+    // Far-Western Region
+    'Jajarkot',
+    'Achham',
+    'Bajura',
+    'Bajhang',
+    'Doti',
+    'Kailali',
+    'Kanchanpur',
+  ]
 
   return (
     <div className="min-h-screen py-8">

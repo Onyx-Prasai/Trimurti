@@ -120,6 +120,11 @@ class Command(BaseCommand):
                     'is_active': True,
                 }
             )
+            # If hospital already exists, don't overwrite its data, but DO fill missing coordinates
+            if not created and (hospital.latitude is None or hospital.longitude is None):
+                hospital.latitude = hosp_data['latitude']
+                hospital.longitude = hosp_data['longitude']
+                hospital.save(update_fields=['latitude', 'longitude'])
             created_hospitals.append(hospital)
             if created:
                 self.stdout.write(f"  Created Hospital: {hospital.name}")
