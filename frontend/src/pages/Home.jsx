@@ -137,9 +137,9 @@ const Home = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Counter value={stats.lives_saved || 1250} label="Lives Saved" delay={0} />
-            <Counter value={stats.active_donors || 450} label="Active Donors" delay={200} />
-            <Counter value={stats.blood_banks || 25} label="Blood Banks" delay={400} />
+            <Counter value={stats.lives_saved || 100000} label="Lives Saved" delay={0} />
+            <Counter value={stats.active_donors || 25000} label="Active Donors" delay={200} />
+            <Counter value={stats.blood_banks || 50} label="Blood Banks" delay={300} />
           </div>
         </div>
       </section>
@@ -148,7 +148,7 @@ const Home = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center text-text mb-12">
-            How You Can Help
+            Our Features
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => {
